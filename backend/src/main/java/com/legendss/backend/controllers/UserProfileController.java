@@ -36,7 +36,7 @@ public class UserProfileController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/createuserprofile")
+    @PostMapping("/createuserprofile") // don`t use for now
     public UserProfile createUserProfile(
             @ModelAttribute UserProfileCreateRequest data,
             HttpServletRequest request

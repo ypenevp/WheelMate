@@ -18,9 +18,9 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/register")
-    public void register(@RequestBody RegisterRequest request) {
-        authService.register(request);
+    @PostMapping("/register") //register?role=CARETAKER
+    public void register(@RequestBody RegisterRequest request, @RequestParam String role) {
+        authService.register(request, role);
     }
 
     @PostMapping("/verify")
@@ -30,8 +30,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest request) {
-        System.out.println("=== LOGIN REQUEST RECEIVED ===");
-        System.out.println("Email: " + request.getEmail());
         return authService.login(request);
     }
 
