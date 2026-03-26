@@ -19,17 +19,14 @@ public class UserProfile {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "address", nullable = false)
+    @Column(name = "address", nullable = true)
     private String address;
 
-    @Column(name = "telephone", nullable = true)
+    @Column(name = "telephone", nullable = false)
     private String telephone;
 
     @Column(name = "photoUrl", nullable = true)
     private String photo;
-
-    @Column(name = "organization", nullable = true)
-    private String organization;
 
     @Column
     @Enumerated(EnumType.STRING)

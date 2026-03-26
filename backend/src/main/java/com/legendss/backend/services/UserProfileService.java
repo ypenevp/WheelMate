@@ -40,10 +40,9 @@ public class UserProfileService {
         if(userProfile.getTheme()!= null){
             userProfileToUpdate.setTheme(userProfile.getTheme());
         }
-        if(userProfile.getOrganization() != null){
-            userProfileToUpdate.setOrganization(userProfile.getOrganization());
+        if(userProfile.getPhoto()!= null){
+            userProfileToUpdate.setPhoto(userProfile.getPhoto());
         }
-
         return this.userProfileRepository.save(userProfileToUpdate);
     }
 
