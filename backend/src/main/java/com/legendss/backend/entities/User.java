@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -26,6 +28,9 @@ public class User {
     @Column
     @Enumerated(EnumType.STRING)
     private ROLE role;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Caretaker> caretakers;
 
     private boolean enabled;
 }

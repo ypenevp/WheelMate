@@ -24,11 +24,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/verify", "/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "RELATIVE", "CARETAKER")
+                        .requestMatchers("/api/caretakers/**").hasRole("USER")
 
                         .anyRequest().authenticated()
                 )
