@@ -1,4 +1,6 @@
 package com.legendss.backend.entities;
 
-public enum THEME {
+public enum THEME{
+    LIGHT,
+    DARK
 }
