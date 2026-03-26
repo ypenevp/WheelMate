@@ -36,6 +36,8 @@ public class DataSeeder implements CommandLineRunner {
             admin.setUsername(adminUsername);
             admin.setPassword(encoder.encode(adminPassword));
             admin.setRole(ROLE.ADMIN);
+            admin.setEnabled(true);
+
 
             userRepo.save(admin);
             System.out.println("Default admin created: " + adminUsername);

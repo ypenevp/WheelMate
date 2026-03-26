@@ -23,31 +23,55 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final EmailService emailService;
     private final JwtService jwtService;
+    private final UserProfileRepository userProfileRepository;
 
     public AuthService(
             UserRepository userRepo,
             VerificationCodeRepository codeRepo,
             PasswordEncoder encoder,
             EmailService emailService,
-            JwtService jwtService
+            JwtService jwtService,
+            UserProfileRepository userProfileRepository
     ) {
         this.userRepo = userRepo;
         this.codeRepo = codeRepo;
         this.encoder = encoder;
         this.emailService = emailService;
         this.jwtService = jwtService;
+        this.userProfileRepository = userProfileRepository;
     }
 
-    public void register(RegisterRequest request) {
+    public void register(RegisterRequest request, String roleStr) {
+
+        ROLE role;
+        try {
+            role = ROLE.valueOf(roleStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid role. Allowed roles: USER, CARETAKER, RELATIVE");
+        }
+
+        if (role == ROLE.ADMIN) {
+            throw new RuntimeException("Cannot register as ADMIN");
+        }
 
         var user = new User();
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
         user.setPassword(encoder.encode(request.getPassword()));
-        user.setRole(ROLE.USER);
+
+        // 2. Задаваме подадената роля
+        user.setRole(role);
+
         user.setEnabled(false);
 
         userRepo.save(user);
+
+        var userProfile = new UserProfile();
+        userProfile.setUser(user);
+        userProfile.setTheme(THEME.LIGHT);
+        userProfile.setTelephone("");
+
+        userProfileRepository.save(userProfile);
 
         var code = UUID.randomUUID().toString().substring(0, 6);
 
@@ -78,7 +102,6 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         try {
-            System.out.println("=== LOGIN PROCESSED START ===");
             var user = userRepo.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -92,19 +115,11 @@ public class AuthService {
 
             String role = (user.getRole() != null) ? String.valueOf(user.getRole()) : "USER";
 
-            System.out.println("Generating token for user: " + user.getEmail() + " with role: " + role);
-
-            // Изпълняваме го на отделен ред, за да сме сигурни къде гърми
             String token = jwtService.generateToken(user.getEmail(), role);
-
-            System.out.println("Token SUCCESS: " + token);
 
             return new AuthResponse(token);
 
-        } catch (Throwable e) { // ← ПРОМЯНА: Хващаме Throwable (вкл. Error), а не само Exception
-            System.err.println("!!! FATAL LOGIN ERROR !!!");
-            System.err.println("Type: " + e.getClass().getName());
-            System.err.println("Message: " + e.getMessage());
+        } catch (Throwable e) {
             e.printStackTrace();
             throw new RuntimeException("Internal Server Error: " + e.getMessage());
         }
