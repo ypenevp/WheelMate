@@ -5,8 +5,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 
 import Home from './pages/Home.jsx';
-import Stats from './pages/Stats.jsx';
+import Map from './pages/Map.jsx';
 import Settings from './pages/Settings.jsx';
+import Monitoring from './pages/Monitoring.jsx';
+import FormData from './pages/FormWheelchair.jsx';
 
 import TopNav from './components/topNav.jsx';
 import BottomNav from './components/bottomNav.jsx';
@@ -58,8 +60,10 @@ function RootLayout() {
             <View style={{ flex: 1 }}>
                 <Stack.Navigator screenOptions={{ headerShown: false, detachInactiveScreens: false }}>
                     <Stack.Screen name="Home" component={Home} />
+                    <Stack.Screen name="Map" component={Map} />
                     <Stack.Screen name="Settings" component={Settings} />
-                    <Stack.Screen name="Stats" component={Stats} />
+                    <Stack.Screen name="Monitoring" component={Monitoring} />
+                    <Stack.Screen name="FormData" component={FormData} />
                 </Stack.Navigator>
             </View>
 

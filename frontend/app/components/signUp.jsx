@@ -129,6 +129,8 @@ export default function SignUp({ onLoginPress, onClose, onShowVerify }) {
                         <Text style={{ color: BLUE, fontWeight: "700", fontSize: 15 }}>Log in</Text>
                     </TouchableOpacity>
                 </View>
+
+                
             </View>
         </ScrollView>
     );
