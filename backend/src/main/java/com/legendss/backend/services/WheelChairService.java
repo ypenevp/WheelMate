@@ -5,16 +5,19 @@ import java.util.List;
 import com.legendss.backend.entities.User;
 import com.legendss.backend.entities.WheelChair;
 import com.legendss.backend.repositories.WheelChairRepository;
-
+import com.legendss.backend.services.utils.DeviceTokenGenerator;
 import org.springframework.stereotype.Service;
 
 @Service
 public class WheelChairService {
 
     private final WheelChairRepository wheelChairRepository;
+    private final DeviceTokenGenerator deviceTokenGenerator;
 
-    public WheelChairService(WheelChairRepository wheelChairRepository){
+
+    public WheelChairService(WheelChairRepository wheelChairRepository, DeviceTokenGenerator deviceTokenGenerator){
         this.wheelChairRepository = wheelChairRepository;
+        this.deviceTokenGenerator = deviceTokenGenerator;
     }
 
     public WheelChair addWheelChair(WheelChair data, User user) {
@@ -32,6 +35,7 @@ public class WheelChairService {
         }
 
         data.setUser(user);
+        data.setToken(deviceTokenGenerator.generateToken());
 
         return this.wheelChairRepository.save(data);
     }
@@ -41,25 +45,34 @@ public class WheelChairService {
                 .orElseThrow(() -> new RuntimeException("WheelChair not found"));
     }
 
-    public WheelChair updateWheelChair(WheelChair wheelChair){
+    public WheelChair updateWheelChair(Long id, WheelChair patchData){
 
-        WheelChair existing = this.wheelChairRepository.findById(wheelChair.getId())
+        WheelChair existing = this.wheelChairRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("WheelChair not found"));
 
-        if (wheelChair.getGpsCoordinate() != null && !wheelChair.getGpsCoordinate().isBlank()) {
-            existing.setGpsCoordinate(wheelChair.getGpsCoordinate());
+        if (patchData.getToken() == null || patchData.getToken().isBlank()) {
+            throw new RuntimeException("Device token is required for update");
         }
 
-        if (wheelChair.getSpeed() != null) {
-            existing.setSpeed(wheelChair.getSpeed());
+        if (!existing.getToken().equals(patchData.getToken())) {
+            throw new RuntimeException("Invalid device token");
         }
 
-        if (wheelChair.getPanicStatus() != null) {
-            existing.setPanicStatus(wheelChair.getPanicStatus());
+        if (patchData.getGpsCoordinate() != null && !patchData.getGpsCoordinate().isBlank()) {
+            existing.setGpsCoordinate(patchData.getGpsCoordinate());
+        }
+
+        if (patchData.getSpeed() != null) {
+            existing.setSpeed(patchData.getSpeed());
+        }
+
+        if (patchData.getPanicStatus() != null) {
+            existing.setPanicStatus(patchData.getPanicStatus());
         }
 
         return this.wheelChairRepository.save(existing);
     }
+
 
     public List<WheelChair> getAllWheelChairs(){
         return this.wheelChairRepository.findAll();

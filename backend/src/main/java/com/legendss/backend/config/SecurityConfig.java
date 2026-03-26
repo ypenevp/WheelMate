@@ -30,6 +30,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/relationships/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "RELATIVE", "CARETAKER")
                         .requestMatchers("/api/caretakers/**").hasRole("USER")
+                        .requestMatchers("/api/wheelchairs/wheelchair/add", "/api/wheelchairs/wheelchair/delete/**", "/api/wheelchairs/wheelchair/get/**", "/api/wheelchairs/wheelchair/get/all").hasRole("USER")
+                        .requestMatchers("/api/wheelchairs/wheelchair/update/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
