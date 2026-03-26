@@ -7,7 +7,7 @@
 #include <MPU6050.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "secrets.h" 
+#include "secrets.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -17,7 +17,7 @@ bool navigationActive = false;
 String direction = "STRAIGHT";
 int distance_m = 0;
 unsigned long lastDisplayUpdate = 0;
-const int TIME_ZONE_OFFSET = 2; // +2 hours for Bulgaria
+const int TIME_ZONE_OFFSET = 2; // +2 hours for EET (Bulgaria)
 
 #define SIM_RX_PIN 16
 #define SIM_TX_PIN 17
@@ -73,7 +73,7 @@ int numEmergencyContacts = 2;
 
 bool alertTriggered = false;
 unsigned long alertStartTime = 0;
-const unsigned long ALERT_DELAY_MS = 10000; // countdown
+const unsigned long ALERT_DELAY_MS = 10000;
 
 bool simReady = false;
 bool lockdown = false;
@@ -83,39 +83,6 @@ unsigned long deactivateDebounceTime = 0;
 const unsigned long DEBOUNCE_MS = 50;
 bool lastPanicState = HIGH;
 bool lastDeactivateState = HIGH;
-
-unsigned long lastGpsSendTime = 0;
-const unsigned long GPS_SEND_INTERVAL = 60000; // 60 секунди (1 минута)
-const String HARDWARE_TOKEN = "ТУК_СЛОЖЕТЕ_ТОКЕНА_ОТ_БАЗАТА_НА_ТОЗИ_ПОТРЕБИТЕЛ";
-
-void sendDataToBackend(float lat, float lon, int speed, bool isPanic) {
-  String url = "https://asha-burned-tressa.ngrok-free.dev/api/hardware/update?token=" + HARDWARE_TOKEN;
-
-  String jsonPayload = "{\"gpsCoordinate\":\"" + String(lat, 6) + "," + String(lon, 6) +
-                       "\",\"speed\":" + String(speed) +
-                       ",\"panicStatus\":" + (isPanic ? "true" : "false") + "}";
-
-  sim.println("AT+HTTPINIT");
-  delay(1000);
-  sim.println("AT+HTTPPARA=\"URL\",\"" + url + "\"");
-  delay(1000);
-  sim.println("AT+HTTPPARA=\"CONTENT\",\"application/json\"");
-  delay(1000);
-
-  sim.print("AT+HTTPDATA=");
-  sim.print(jsonPayload.length());
-  sim.println(",10000");
-  delay(500);
-
-  sim.println(jsonPayload);
-  delay(1000);
-
-  sim.println("AT+HTTPACTION=1");
-  delay(5000);
-
-  sim.println("AT+HTTPTERM");
-  delay(500);
-}
 
 
 void drawArrow(String dir)
@@ -320,6 +287,8 @@ String getFallReason()
   return "";
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
 bool checkFallDetection()
 {
   if (!mpuReady || !ENABLE_GYRO)
@@ -468,6 +437,9 @@ bool checkNetwork()
   return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+
 bool sendSMS(String number, String message)
 {
   if (!simReady)
@@ -533,6 +505,8 @@ void alertSignalBlinkLED()
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
 
 void setup()
 {
@@ -585,6 +559,7 @@ void setup()
   }
 
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+
   BLEDevice::init("Wheelchair-Nav");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -613,6 +588,7 @@ void setup()
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////
 
 void loop()
 {
@@ -672,7 +648,6 @@ void loop()
 
   bool fallDetected = checkFallDetection();
 
-  // 4. Alert Logic
   if ((panicPressed || fallDetected) && !alertTriggered)
   {
     alertTriggered = true;
@@ -687,13 +662,6 @@ void loop()
     digitalWrite(LED_PIN, HIGH);
     digitalWrite(BUZZER_PIN, HIGH);
 
-        float currentLat = gps.location.isValid() ? gps.location.lat() : 0.0;
-        float currentLon = gps.location.isValid() ? gps.location.lng() : 0.0;
-        int currentSpeed = gps.speed.isValid() ? gps.speed.kmph() : 0;
-        Serial.println("Instant SOS Triggered! Sending to backend...");
-        sendDataToBackend(currentLat, currentLon, currentSpeed, true);
-        //
-
     updateDisplay(); 
   }
 
@@ -705,14 +673,6 @@ void loop()
       digitalWrite(BUZZER_PIN, LOW);
       digitalWrite(LED_PIN, LOW);
       Serial.println("Alert DEACTIVATED by user.");
-
-            float currentLat = gps.location.isValid() ? gps.location.lat() : 0.0;
-            float currentLon = gps.location.isValid() ? gps.location.lng() : 0.0;
-            int currentSpeed = gps.speed.isValid() ? gps.speed.kmph() : 0;
-            Serial.println("Sending alert cancellation to backend.");
-            sendDataToBackend(currentLat, currentLon, currentSpeed, false);
-
-
       updateDisplay();
     }
     else if (millis() - alertStartTime >= ALERT_DELAY_MS)
@@ -780,18 +740,6 @@ void loop()
     Serial.println("BLE Sent: " + gpsData);
     sendGPSData = false;
   }
-
-    if (millis() - lastGpsSendTime >= GPS_SEND_INTERVAL)
-    {
-      float currentLat = gps.location.isValid() ? gps.location.lat() : 0.0;
-      float currentLon = gps.location.isValid() ? gps.location.lng() : 0.0;
-      int currentSpeed = gps.speed.isValid() ? gps.speed.kmph() : 0;
-
-      Serial.println("Periodic 1-minute tracking update to backend...");
-      sendDataToBackend(currentLat, currentLon, currentSpeed, alertTriggered || lockdown);
-
-      lastGpsSendTime = millis();
-    }
 
   while (sim.available())
     Serial.write(sim.read());
