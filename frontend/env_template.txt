@@ -1,1 +1,4 @@
-DATA =
+API_URL = <ipconfig>
+# OpenRouteService API Key
+# Get yours free at: https://openrouteservice.org/dev/#/signup
+EXPO_PUBLIC_ORS_API_KEY=your_openrouteservice_api_key_here

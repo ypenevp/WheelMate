@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Fontisto, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const TABS = [
-    { name: 'Map', route: 'Map', icon: 'map-marker-alt', lib: 'fontisto' },
+    { name: 'Nav', route: 'Map', icon: 'map-marker-alt', lib: 'fontisto' },
     { name: 'Monitoring', route: 'Monitoring', icon: 'monitor-dashboard', lib: 'material' },
     { name: 'Settings', route: 'Settings', icon: 'spinner-cog', lib: 'fontisto' },
 ];
