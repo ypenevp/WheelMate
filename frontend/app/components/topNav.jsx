@@ -17,7 +17,8 @@ const TopNav = ({ navigation, currentRoute }) => {
 
     const allTabs = [
         { name: 'Home', route: 'Home' },
-        { name: 'Stats', route: 'Stats' },
+        { name: 'Map', route: 'Map' },
+        { name: 'Monitoring', route: 'Monitoring' },
         { name: 'Settings', route: 'Settings' },
     ];
 
