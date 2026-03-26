@@ -1,5 +1,6 @@
 package com.legendss.backend.controllers;
 
+import com.legendss.backend.dto.EmailRequest;
 import com.legendss.backend.entities.User;
 import com.legendss.backend.services.UserRelationshipService;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +18,13 @@ public class UserRelationshipController {
     }
 
     @PostMapping("/relative/add")
-    public User addRelative(@RequestAttribute("email") String userEmail, @RequestParam String relativeEmail) {
-        return userRelationshipService.addRelative(userEmail, relativeEmail);
+    public User addRelative(@RequestAttribute("email") String userEmail, @RequestBody EmailRequest relativeEmailRequest) {
+        return userRelationshipService.addRelative(userEmail, relativeEmailRequest.getEmail());
     }
 
     @PostMapping("/caretaker/add")
-    public User addCaretaker(@RequestAttribute("email") String userEmail, @RequestParam String caretakerEmail) {
-        return userRelationshipService.addCaretaker(userEmail, caretakerEmail);
+    public User addCaretaker(@RequestAttribute("email") String userEmail, @RequestBody EmailRequest caretakerEmailRequest) {
+        return userRelationshipService.addCaretaker(userEmail, caretakerEmailRequest.getEmail());
     }
 
     @GetMapping("/relatives")
