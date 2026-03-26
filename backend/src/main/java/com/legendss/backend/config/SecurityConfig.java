@@ -27,6 +27,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/verify", "/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/relationships/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "RELATIVE", "CARETAKER")
                         .requestMatchers("/api/caretakers/**").hasRole("USER")
 

@@ -36,7 +36,7 @@ public class UserProfileController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/createuserprofile")
+    @PostMapping("/createuserprofile") // don`t use for now
     public UserProfile createUserProfile(
             @ModelAttribute UserProfileCreateRequest data,
             HttpServletRequest request
@@ -54,19 +54,9 @@ public class UserProfileController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserProfile userProfile= new UserProfile();
+        UserProfile userProfile = new UserProfile();
         userProfile.setAddress(data.getAddress());
-        if(user.getRole() == ROLE.USER && data.getTelephone() != null) {
-            throw new RuntimeException("Users cannot set telephone number");
-        }
-
-        if(user.getRole() == ROLE.CARETAKER || user.getRole() == ROLE.RELATIVE || user.getRole() == ROLE.USER) {
-            userProfile.setTelephone(data.getTelephone());
-        }
-
-        if(user.getRole() == ROLE.CARETAKER) {
-            userProfile.setOrganization(data.getOrganization());
-        }
+        userProfile.setTelephone(data.getTelephone());
 
         userProfile.setTheme(THEME.LIGHT);
         userProfile.setUser(user);

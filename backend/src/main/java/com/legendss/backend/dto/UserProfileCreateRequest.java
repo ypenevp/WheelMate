@@ -1,6 +1,7 @@
 package com.legendss.backend.dto;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,7 +9,10 @@ import org.springframework.web.multipart.MultipartFile;
 @Setter
 public class UserProfileCreateRequest {
     private String address;
+
+    @NonNull
     private String telephone;
+
+    @NonNull
     private MultipartFile photo;
-    private String organization;
 }
