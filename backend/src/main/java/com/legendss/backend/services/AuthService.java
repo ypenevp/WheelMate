@@ -77,18 +77,37 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        var user = userRepo.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        try {
+            System.out.println("=== LOGIN PROCESSED START ===");
+            var user = userRepo.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!encoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Bad credentials");
+            if (!encoder.matches(request.getPassword(), user.getPassword())) {
+                throw new RuntimeException("Bad credentials");
+            }
+
+            if (!user.isEnabled()) {
+                throw new RuntimeException("Email not verified");
+            }
+
+            String role = (user.getRole() != null) ? String.valueOf(user.getRole()) : "USER";
+
+            System.out.println("Generating token for user: " + user.getEmail() + " with role: " + role);
+
+            // Изпълняваме го на отделен ред, за да сме сигурни къде гърми
+            String token = jwtService.generateToken(user.getEmail(), role);
+
+            System.out.println("Token SUCCESS: " + token);
+
+            return new AuthResponse(token);
+
+        } catch (Throwable e) { // ← ПРОМЯНА: Хващаме Throwable (вкл. Error), а не само Exception
+            System.err.println("!!! FATAL LOGIN ERROR !!!");
+            System.err.println("Type: " + e.getClass().getName());
+            System.err.println("Message: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Internal Server Error: " + e.getMessage());
         }
-
-        if (!user.isEnabled()) {
-            throw new RuntimeException("Email not verified");
-        }
-
-        return new AuthResponse(jwtService.generateToken(user.getEmail(), String.valueOf(user.getRole())));
     }
 
     public UserResponse getUserData(String email) {
