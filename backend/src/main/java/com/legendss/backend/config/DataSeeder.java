@@ -39,7 +39,7 @@ public class DataSeeder implements CommandLineRunner {
             admin.setEnabled(true);
 
             userRepo.save(admin);
-            System.out.println("Default admin created: " + adminEmail + " / " + adminPassword);
+            System.out.println("Default admin created: " + adminUsername);
         }
     }
 }
