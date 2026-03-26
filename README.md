@@ -47,17 +47,58 @@ WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-
 ## API Documentation
 
 Base URL: `http://localhost:7070/api`
+### Wheelchair
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST`   | `/wheelchair/addwheelchair` | Add a wheelchair with GPS coordinates and speed. |
+| `GET`    | `/wheelchair/getallwheelchair` | Get all wheelchairs from DB. |
+| `GET`    | `/wheelchair/getwheelchair/{id}` | Get a single wheelchair by ID. |
+| `PATCH`  | `/wheelchair/updatewheelchair/{id}` | Update wheelchair parameters. |
+| `DELETE` | `/wheelchair/deletewheelchair/{id}` | Delete a wheelchair by ID. |
+
+---
+
+### Caretaker
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST`   | `/caretaker/add` | Add a new caretaker with name and number. |
+| `GET`    | `/caretaker/get/{id}` | Get a single caretaker by ID. |
+| `GET`    | `/caretaker/getall` | Get all caretakers. |
+| `PATCH`  | `/caretaker/update/{id}` | Update a caretaker's name or number. |
+| `DELETE` | `/caretaker/delete/{id}` | Delete a caretaker by ID. |
+
+---
 
 ### Authentication
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/auth/register` | Registers a new user. Returns a JWT token. |
-| `POST` | `/auth/verify` | Checks code from email |
-| `POST` | `/auth/login` | Authenticates a user. Returns a JWT access token. |
+| `POST` | `/auth/register?role=CARETAKER` | Register user with email, username and password. |
+| `POST` | `/auth/verify` | Verify user with a code sent to their email. |
+| `POST` | `/auth/login` | Login a verified user with email and password. |
+| `GET`  | `/auth/me` | Get the currently authenticated user. |
+| `GET`  | `/auth/getallusers` | Get all authenticated users from DB. |
 
 ---
 
+### Admin
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PATCH` | `/admin/users/role` | Update a user's role. |
+
+---
+
+### User Profile
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST`   | `/userprofile/createuserprofile` | Create a user profile with address, photo and telephone. |
+| `GET`    | `/userprofile/getuserprofile/{id}` | Get a user profile by ID. |
+| `PATCH`  | `/userprofile/updateuserprofile/{id}` | Update a user profile by ID. |
+| `DELETE` | `/userprofile/deleteuserprofile/{id}` | Delete a user profile by ID. |
 ## Schematic
 
 
