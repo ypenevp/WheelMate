@@ -26,6 +26,9 @@ public class WheelChair {
     @OneToOne(optional = false)
     private User user;
 
+    @Column(name = "token", nullable = false, unique = true, updatable = false)
+    private String token;
+
     @PrePersist
     public void setStatus(){
         this.panicStatus = false;

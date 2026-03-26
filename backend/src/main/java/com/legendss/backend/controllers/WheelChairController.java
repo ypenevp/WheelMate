@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.legendss.backend.entities.ROLE;
 import jakarta.servlet.http.HttpServletRequest;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.legendss.backend.entities.User;
@@ -15,7 +15,7 @@ import com.legendss.backend.services.WheelChairService;
 
 @RestController
 @CrossOrigin(origins = "*")
-@RequestMapping("/wheelchair")
+@RequestMapping("/api/wheelchairs")
 public class WheelChairController {
 
     private final WheelChairService wheelChairService;
@@ -32,49 +32,30 @@ public class WheelChairController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/addwheelchair")
-    public WheelChair addWheelChair(
-            @RequestBody WheelChair data,
-            HttpServletRequest request
-    ) {
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Missing or invalid Authorization header");
-        }
-
-        String token = authHeader.substring(7);
-        String email = jwtService.extractEmail(token);
-
+    @PostMapping("/wheelchair/add")
+    public WheelChair addWheelChair(@RequestBody WheelChair data, Authentication authentication) {
+        String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        if (user.getRole() == ROLE.USER) {
-            return this.wheelChairService.addWheelChair(data, user);
-        } else {
-            throw new RuntimeException("You do not have permission to perform this action");
-        }
+        return this.wheelChairService.addWheelChair(data, user);
     }
 
-    @GetMapping("/getallwheelchair")
+    @GetMapping("/wheelchair/get/all")
     public List<WheelChair> getAllWheelChair() {
         return this.wheelChairService.getAllWheelChairs();
     }
 
-    @GetMapping("/getwheelchair/{id}")
+    @GetMapping("/wheelchair/get/{id}")
     public WheelChair getWheelChair(@PathVariable Long id) {
         return this.wheelChairService.getWheelChair(id);
     }
 
-    @PatchMapping("/updatewheelchair/{id}")
-    public WheelChair updateWheelChair(
-            @PathVariable Long id,
-            @RequestBody WheelChair wheelChair
-    ) {
-        wheelChair.setId(id);
-        return this.wheelChairService.updateWheelChair(wheelChair);
+    @PatchMapping("/wheelchair/update/{id}")
+    public WheelChair updateWheelChair(@PathVariable Long id, @RequestBody WheelChair wheelChair) {
+        return this.wheelChairService.updateWheelChair(id, wheelChair);
     }
 
-    @DeleteMapping("/deletewheelchair/{id}")
+    @DeleteMapping("/wheelchair/delete/{id}")
     public void deleteWheelChair(@PathVariable Long id){
         this.wheelChairService.deleteWheelChair(id);
     }
