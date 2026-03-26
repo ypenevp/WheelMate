@@ -8,6 +8,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "secrets.h"
+#include <WiFi.h>
+#include <HTTPClient.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -84,6 +86,8 @@ const unsigned long DEBOUNCE_MS = 50;
 bool lastPanicState = HIGH;
 bool lastDeactivateState = HIGH;
 
+unsigned long lastWiFiSend = 0;
+const unsigned long WIFI_SEND_INTERVAL = 5000;
 
 void drawArrow(String dir)
 {
@@ -507,7 +511,76 @@ void alertSignalBlinkLED()
 
 //////////////////////////////////////////////////////////////////////////////
 
+void sendToBackend(bool panicStatus)
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("WiFi not connected, skipping backend send.");
+    return;
+  }
 
+  HTTPClient http;
+  http.begin(BACKEND_URL);
+  http.addHeader("Content-Type", "application/json");
+
+  String payload = "{";
+
+  // GPS
+  if (gps.location.isValid())
+  {
+    // send as single string: "lat lon" (no comma)
+    payload += "\"gpsCoordinate\":\"";
+    payload += String(gps.location.lat(), 6) + " " + String(gps.location.lng(), 6);
+    payload += "\",";
+  }
+  else
+  {
+    payload += "\"gpsCoordinate\":null,";
+  }
+
+  // Speed
+  if (gps.speed.isValid())
+  {
+    payload += "\"speed\":" + String(gps.speed.kmph(), 1) + ",";
+  }
+  else
+  {
+    payload += "\"speed\":0,";
+  }
+
+  // Token
+  payload += "\"token\":\"" + String(DEVICE_TOKEN) + "\",";
+
+  // Panic status
+  payload += "\"panicStatus\":";
+  payload += panicStatus ? "true" : "false";
+
+  payload += "}";
+
+  Serial.println("Sending to backend:");
+  Serial.println(payload);
+
+
+  int httpResponseCode = http.sendRequest("PATCH", payload);
+
+  Serial.println("Backend response code: " + String(httpResponseCode));
+
+  String responseBody = "";
+  if (httpResponseCode > 0)
+  {
+    responseBody = http.getString();
+    Serial.println("Backend response body:");
+    Serial.println(responseBody);
+  }
+  else
+  {
+    Serial.println("Error sending request. Code: " + String(httpResponseCode));
+  }
+
+  http.end();
+}
+
+/////////////////////////////////////////////////////////////////////////////
 void setup()
 {
   Serial.begin(115200);
@@ -585,6 +658,27 @@ void setup()
   {
     simReady = true;
     Serial.println("\n>> SIM800L Ready.");
+  }
+
+  Serial.println("\n>> Connecting to WiFi...");
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  int wifiRetries = 0;
+  while (WiFi.status() != WL_CONNECTED && wifiRetries < 20)
+  {
+    delay(500);
+    Serial.print(".");
+    wifiRetries++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("\nWiFi connected!");
+    Serial.println(WiFi.localIP());
+  }
+  else
+  {
+    Serial.println("\nWiFi FAILED!");
   }
 }
 
@@ -673,6 +767,7 @@ void loop()
       digitalWrite(BUZZER_PIN, LOW);
       digitalWrite(LED_PIN, LOW);
       Serial.println("Alert DEACTIVATED by user.");
+      sendToBackend(true);
       updateDisplay();
     }
     else if (millis() - alertStartTime >= ALERT_DELAY_MS)
@@ -724,6 +819,12 @@ void loop()
   {
     lastBLEUpdate = millis();
     sendGPSData = true;
+  }
+
+  if (millis() - lastWiFiSend > WIFI_SEND_INTERVAL)
+  {
+    lastWiFiSend = millis();
+    sendToBackend(false);
   }
 
   if (deviceConnected && sendGPSData)
