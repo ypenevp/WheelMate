@@ -69,7 +69,7 @@ Base URL: `http://localhost:7070/api`
 |--------|----------|-------------|
 | `POST`   | `/caretakers/add` | Add a new caretaker with name and number. |
 | `GET`    | `/caretakers/get/{id}` | Get a single caretaker by ID. |
-| `GET`    | `/caretakers/getall` | Get all caretakers. |
+| `GET`    | `/caretakers/get/all` | Get all caretakers. |
 | `PATCH`  | `/caretakers/update/{id}` | Update a caretaker's name or number. |
 | `DELETE` | `/caretakers/delete/{id}` | Delete a caretaker by ID. |
 
