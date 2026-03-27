@@ -33,11 +33,17 @@ public class WheelChairController {
     }
 
     @PostMapping("/wheelchair/add")
-    public WheelChair addWheelChair(@RequestBody WheelChair data, Authentication authentication) {
+    public WheelChair addWheelChair(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return this.wheelChairService.addWheelChair(data, user);
+
+        WheelChair defaultWheelChair = new WheelChair();
+        defaultWheelChair.setGpsCoordinate("0.0,0.0");
+        defaultWheelChair.setSpeed(0);
+        defaultWheelChair.setPanicStatus(false);
+
+        return this.wheelChairService.addWheelChair(defaultWheelChair, user);
     }
 
 
@@ -53,13 +59,6 @@ public class WheelChairController {
         return this.wheelChairService.getWheelChairByUserIdSecurely(userId, requesterEmail);
     }
 
-    @GetMapping("/wheelchair/my")
-    public WheelChair getMyWheelChair(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return wheelChairService.getWheelChairByUserIdSecurely(user.getId(), email);
-    }
 
     @GetMapping("/wheelchair/my/associated")
     public List<WheelChair> getMyAssociatedWheelChairs(Authentication authentication) {

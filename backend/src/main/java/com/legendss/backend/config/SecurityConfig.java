@@ -38,6 +38,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/hardware/**").permitAll()
 
+                        .requestMatchers("/api/wheelchairs/wheelchair/my/associated").hasAnyRole("USER", "RELATIVE", "CARETAKER")
+
 
                         .anyRequest().authenticated()
                 )
