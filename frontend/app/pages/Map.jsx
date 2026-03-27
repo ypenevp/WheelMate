@@ -83,7 +83,7 @@ function buildMapHTML(lat, lng) {
 <div id="map"></div>
 <script>
 var map=L.map('map',{zoomControl:true}).setView([${lat},${lng}],15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19}).addTo(map);
 
 var userIcon=L.divIcon({className:'',html:'<div class="user-dot" style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
 var userMarker=L.marker([${lat},${lng}],{icon:userIcon}).addTo(map);
@@ -461,12 +461,12 @@ export default function MapPage() {
           domStorageEnabled
           startInLoadingState
           renderLoading={() => (
-            <View style={s.placeholder}><ActivityIndicator size="large" color="#2473c8"/></View>
+            <View style={s.placeholder}><ActivityIndicator size="large" color="#2473c8" /></View>
           )}
         />
       ) : (
         <View style={s.placeholder}>
-          <ActivityIndicator size="large" color="#2480c6"/>
+          <ActivityIndicator size="large" color="#2480c6" />
           <Text style={s.muted}>Locating you…</Text>
         </View>
       )}
@@ -487,18 +487,16 @@ export default function MapPage() {
       )}
 
       {/* BLE STATUS DOT */}
-      <View style={s.bleDot} pointerEvents="none">
-        <View style={[s.bleDotInner, {
-          backgroundColor:
-            bleStatus === 'connected' ? '#22c55e' :
-              bleStatus === 'scanning' ? '#f59e0b' :
-                bleStatus === 'error' ? '#ef4444' : '#374151',
-        }]} />
+      <TouchableOpacity
+        style={s.bleDot}
+        onPress={bleScan}
+        activeOpacity={0.7}
+      >
+        <View style={[s.bleDotInner, { backgroundColor: bleStatus === 'connected' ? '#22c55e' : bleStatus === 'scanning' ? '#eab308' : '#ef4444' }]} />
         <Text style={s.bleDotTxt}>
-          {bleStatus === 'connected' ? 'BLE' :
-            bleStatus === 'scanning' ? 'BLE…' : 'BLE✕'}
+          {bleStatus === 'connected' ? 'Connected' : bleStatus === 'scanning' ? 'Scanning...' : 'Disconnected'}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       {/* ARRIVED OVERLAY */}
       {phase === 'arrived' && (
@@ -544,7 +542,7 @@ export default function MapPage() {
           {/* ROUTING */}
           {phase === 'routing' && (
             <View style={s.centered}>
-              <ActivityIndicator size="large" color="#2581cd"/>
+              <ActivityIndicator size="large" color="#2581cd" />
               <Text style={s.muted}>Finding accessible route…</Text>
             </View>
           )}
@@ -593,7 +591,7 @@ export default function MapPage() {
                         <Text style={[s.arrow, isDone && { opacity: 0.3 }]}>{STEP_ARROW[step.type] ?? '→'}</Text>
                       </View>
                       <View style={s.stepMid}>
-                        <Text style={[s.stepLabel, isDone && {color:'#374151'}, isActive && {color:'#2581cd'}]}>
+                        <Text style={[s.stepLabel, isDone && { color: '#374151' }, isActive && { color: '#2581cd' }]}>
                           {STEP_LABEL[step.type] ?? 'CONTINUE'}
                         </Text>
                       </View>
@@ -643,16 +641,16 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.92)',
     alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 99,
   },
-  arrivedEmoji: { fontSize:64 },
-  arrivedTitle: { color:'#f9fafb', fontSize:26, fontWeight:'800' },
-  arrivedSub:   { color:'#6b7280', fontSize:14 },
-  arrivedBtn:   { marginTop:8, backgroundColor:'#2581cd', paddingHorizontal:40, paddingVertical:14, borderRadius:14 },
-  arrivedBtnTxt:{ color:'#fff', fontWeight:'700', fontSize:16 },
+  arrivedEmoji: { fontSize: 64 },
+  arrivedTitle: { color: '#f9fafb', fontSize: 26, fontWeight: '800' },
+  arrivedSub: { color: '#6b7280', fontSize: 14 },
+  arrivedBtn: { marginTop: 8, backgroundColor: '#2581cd', paddingHorizontal: 40, paddingVertical: 14, borderRadius: 14 },
+  arrivedBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
   panel: {
     backgroundColor: '#111827', borderTopLeftRadius: 22, borderTopRightRadius: 22,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
-    maxHeight: SCREEN_HEIGHT * 0.52, minHeight: 500,
+    maxHeight: SCREEN_HEIGHT * 0.52, minHeight: 400,
     borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000', shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.5, shadowRadius: 16, elevation: 20,
@@ -666,28 +664,28 @@ const s = StyleSheet.create({
 
   resumeBtn: {
     // ПРОМЕНЕНО
-    backgroundColor:'rgba(59,130,246,0.15)', borderWidth:1,
-    borderColor:'#2581cd', borderRadius:20,
-    paddingHorizontal:12, paddingVertical:5,
+    backgroundColor: 'rgba(59,130,246,0.15)', borderWidth: 1,
+    borderColor: '#2581cd', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 5,
   },
-  resumeTxt: { color:'#2581cd', fontWeight:'700', fontSize:13 },
+  resumeTxt: { color: '#2581cd', fontWeight: '700', fontSize: 13 },
 
   goBtn: {
-    alignItems:'center', justifyContent:'center',
-    backgroundColor:'#2581cd', borderRadius:14, paddingVertical:15,
-    shadowColor:'#2581cd', shadowOffset:{width:0,height:4},
-    shadowOpacity:0.35, shadowRadius:10, elevation:8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#2581cd', borderRadius: 14, paddingVertical: 15,
+    shadowColor: '#2581cd', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
   },
   goBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 24, gap: 12 },
 
   heroCard: {
-    flexDirection:'row', alignItems:'center',
-    backgroundColor:'#1f2937', borderRadius:16,
-    padding:14, marginBottom:10, gap:12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1f2937', borderRadius: 16,
+    padding: 14, marginBottom: 10, gap: 12,
     // ПРОМЕНЕНО
-    borderWidth:1, borderColor:'rgba(59,130,246,0.25)',
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)',
   },
   heroArrow: { fontSize: 36, width: 48, textAlign: 'center' },
   heroMid: { flex: 1 },
@@ -708,19 +706,37 @@ const s = StyleSheet.create({
   stepRowActive: { opacity: 1 },
   stepRowDone: { opacity: 0.35 },
 
-  badge:       { width:36,height:36,borderRadius:10,backgroundColor:'#1f2937',alignItems:'center',justifyContent:'center',flexShrink:0 },
+  badge: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   // ПРОМЕНЕНО
-  badgeActive: { backgroundColor:'rgba(59,130,246,0.2)', borderWidth:1, borderColor:'rgba(59,130,246,0.4)' },
-  badgeArrive: { backgroundColor:'rgba(59,130,246,0.15)' },
-  arrow:       { fontSize:17 },
-  stepMid:     { flex:1 },
-  stepLabel:   { color:'#9ca3af', fontSize:13, fontWeight:'700', letterSpacing:0.5 },
-  chip:        { backgroundColor:'#1f2937', borderRadius:8, paddingHorizontal:8, paddingVertical:4, flexShrink:0 },
-  chipTxt:     { color:'#9ca3af', fontSize:11, fontWeight:'700' },
+  badgeActive: { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.4)' },
+  badgeArrive: { backgroundColor: 'rgba(59,130,246,0.15)' },
+  arrow: { fontSize: 17 },
+  stepMid: { flex: 1 },
+  stepLabel: { color: '#9ca3af', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
+  chip: { backgroundColor: '#1f2937', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexShrink: 0 },
+  chipTxt: { color: '#9ca3af', fontSize: 11, fontWeight: '700' },
 
   resetBtn: {
     marginTop: 10, alignItems: 'center', paddingVertical: 10,
     borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
   },
   resetTxt: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
+
+  bleDot: {
+    position: 'absolute',
+    top:10, // Increased slightly to clear the notch/status bar 
+    right: 16,
+    zIndex: 999, // Brings it to the very front (iOS)
+    elevation: 10, // Brings it to the very front (Android)
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // Slightly more space between the dot and text
+    backgroundColor: '#1f2937', // Adjust based on your theme
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    // Remove any hardcoded 'width' or 'height' here if you have them so it stops clipping!
+  },
+  bleDotInner: { width: 8, height: 8, borderRadius: 4 },
+  bleDotTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });

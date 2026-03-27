@@ -1,7 +1,7 @@
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import "../global.css"; // Може да се запази ако има глобални стилове, но класовете вече не се ползват тук
+import "../global.css"; 
 
 export default function Home() {
     const navigation = useNavigation();
@@ -20,8 +20,11 @@ export default function Home() {
                         Интелигентна платформа за инвалидни колички — GPS проследяване, умна навигация, SOS сигнали и сензори за препятствия. Вашата мобилност, безопасност и независимост.
                     </Text>
                     <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 5 }}>
-                        <TouchableOpacity  style={{ backgroundColor: '#3b82f6', borderRadius: 9999, paddingVertical: 12, paddingHorizontal: 24, alignSelf: 'flex-start', marginTop: 16 }} activeOpacity={0.7} onPress={() => navigation.navigate('FormData')}>
+                        <TouchableOpacity  style={{ backgroundColor: '#3b82f6', borderRadius: 9999, paddingVertical: 12, paddingHorizontal: 24, alignSelf: 'flex-start', marginTop: 16 }} activeOpacity={0.7} >
                             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>+ Add new wheelchair</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity  style={{ backgroundColor: '#3b82f6', borderRadius: 9999, paddingVertical: 12, paddingHorizontal: 24, alignSelf: 'flex-start', marginTop: 16 }} activeOpacity={0.7} onPress={() => navigation.navigate('RelativesCareTakers')} >
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>+ Add relative/care taker</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
