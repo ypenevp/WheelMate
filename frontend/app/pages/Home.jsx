@@ -89,7 +89,7 @@ export default function Home() {
                 {[
                     { icon: 'accessible', iconLib: 'material', color: '#3b82f6', bgVal: '#dbeafe', title: 'Fleet Management', desc: 'Track, add and manage your entire wheelchair fleet with ease.', route: "Settings" },
                     { icon: 'location', iconLib: 'ionicons', color: '#22c55e', bgVal: '#dcfce7', title: 'Live Tracking', desc: 'Real-time GPS monitoring and route navigation on an interactive map.', route: "Map" },
-                    { icon: 'tablet-landscape', iconLib: 'ionicons', color: '#f59e0b', bgVal: '#fef3c7', title: 'Monitoring', desc: 'Continuous oversight of your fleet\'s performance and status.', route: "Stats" },
+                    { icon: 'tablet-landscape', iconLib: 'ionicons', color: '#f59e0b', bgVal: '#fef3c7', title: 'Monitoring', desc: 'Continuous oversight of your fleet\'s performance and status.', route: "Monitoring" },
                 ].map((item, i) => (
                     <TouchableOpacity
                         key={i}
