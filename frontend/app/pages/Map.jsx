@@ -10,11 +10,6 @@ import "../global.css";
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ORS_API_KEY = process.env.EXPO_PUBLIC_ORS_API_KEY;
 
-// // ── BLE ────────────────────────────────────────────────────────────
-// const BLE_DEVICE_NAME = 'Wheelchair-Nav';
-// const BLE_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-// const BLE_RX_CHAR = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // phone→ESP32
-
 // Normalise step type → canonical label the ESP32 drawArrow understands
 const BLE_DIR = {
   0: 'LEFT', 1: 'RIGHT', 2: 'LEFT', 3: 'RIGHT',
@@ -140,11 +135,6 @@ export default function MapPage() {
   const lastRerouteRef = useRef(0);
   const isReroutingRef = useRef(false);
 
-  // ── BLE refs ───────────────────────────────────────────────────
-  // const bleManagerRef = useRef(null);
-  // const bleDeviceRef = useRef(null);
-  // const bleLastSentRef = useRef({ dir: null, dist: -1 }); // debounce identical sends
-
   const [location, setLocation] = useState(null);
   const [destination, setDest] = useState(null);
   const [steps, setSteps] = useState([]);   // nav-only steps
@@ -153,8 +143,6 @@ export default function MapPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [distToNext, setDistToNext] = useState(null);
   const [rerouting, setRerouting] = useState(false);
-  // const [bleStatus, setBleStatus] = useState('off'); // 'off'|'scanning'|'connected'|'error'
-
 
   // Resume snapshot
   const [savedRoute, setSavedRoute] = useState(null);
@@ -168,59 +156,6 @@ export default function MapPage() {
     panelAnim.setValue(0);
     Animated.spring(panelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 12 }).start();
   };
-
-  // // ── BLE: init, scan, connect, send ──────────────────────────────
-  // useEffect(() => {
-  //   bleManagerRef.current = new BleManager();
-  //   // Short delay so the manager fully powers up before scanning
-  //   const t = setTimeout(bleScan, 1500);
-  //   return () => {
-  //     clearTimeout(t);
-  //     bleDeviceRef.current?.cancelConnection();
-  //     bleManagerRef.current?.destroy();
-  //   };
-  // }, []);
-
-  // const bleScan = () => {
-  //   if (!bleManagerRef.current) return;
-  //   setBleStatus('scanning');
-  //   bleManagerRef.current.startDeviceScan(null, { allowDuplicates: false }, (err, device) => {
-  //     if (err) { setBleStatus('error'); return; }
-  //     if (device?.name === BLE_DEVICE_NAME) {
-  //       bleManagerRef.current.stopDeviceScan();
-  //       bleConnect(device);
-  //     }
-  //   });
-  // };
-
-  // const bleConnect = async (device) => {
-  //   try {
-  //     const connected = await device.connect({ autoConnect: false });
-  //     await connected.discoverAllServicesAndCharacteristics();
-  //     bleDeviceRef.current = connected;
-  //     setBleStatus('connected');
-  //     // Auto-reconnect on drop
-  //     connected.onDisconnected(() => {
-  //       bleDeviceRef.current = null;
-  //       setBleStatus('scanning');
-  //       setTimeout(bleScan, 3000);
-  //     });
-  //   } catch (_) {
-  //     setBleStatus('error');
-  //     setTimeout(bleScan, 5000);
-  //   }
-  // };
-
-  // // Send a raw string to the ESP32 RX characteristic
-  // const bleSend = async (msg) => {
-  //   const dev = bleDeviceRef.current;
-  //   if (!dev) return;
-  //   try {
-  //     await dev.writeCharacteristicWithoutResponseForService(
-  //       BLE_SERVICE, BLE_RX_CHAR, btoa(msg),
-  //     );
-  //   } catch (_) { }
-  // };
 
   // ── Initial permission + GPS fix ──────────────────────────────
   useEffect(() => {
@@ -424,19 +359,6 @@ export default function MapPage() {
     webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
   };
 
-  // // ── Send live nav update to ESP32 over BLE ───────────────────────
-  // useEffect(() => {
-  //   if (phase !== 'done' || !steps[activeStep]) return;
-  //   const dir = BLE_DIR[steps[activeStep].type] ?? 'STRAIGHT';
-  //   const dist = distToNext ?? Math.round(steps[activeStep].distance);
-  //   const last = bleLastSentRef.current;
-  //   // Only transmit when direction changes OR distance shifts by >3 m
-  //   if (dir !== last.dir || Math.abs(dist - last.dist) > 3) {
-  //     bleLastSentRef.current = { dir, dist };
-  //     bleSend(`NAV:${dir},${dist}`);
-  //   }
-  // }, [phase, activeStep, distToNext]);
-
   // ─────────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
@@ -482,18 +404,6 @@ export default function MapPage() {
           <Text style={s.rerouteTxt}>Rerouting…</Text>
         </View>
       )}
-
-      {/* BLE STATUS DOT
-      <TouchableOpacity
-        style={s.bleDot}
-        onPress={bleScan}
-        activeOpacity={0.7}
-      >
-        <View style={[s.bleDotInner, { backgroundColor: bleStatus === 'connected' ? '#22c55e' : bleStatus === 'scanning' ? '#eab308' : '#ef4444' }]} />
-        <Text style={s.bleDotTxt}>
-          {bleStatus === 'connected' ? 'Connected' : bleStatus === 'scanning' ? 'Scanning...' : 'Disconnected'}
-        </Text>
-      </TouchableOpacity> */}
 
       {/* ARRIVED OVERLAY */}
       {phase === 'arrived' && (
@@ -718,22 +628,4 @@ const s = StyleSheet.create({
     borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
   },
   resetTxt: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
-
-  // bleDot: {
-  //   position: 'absolute',
-  //   top:10, // Increased slightly to clear the notch/status bar 
-  //   right: 16,
-  //   zIndex: 999, // Brings it to the very front (iOS)
-  //   elevation: 10, // Brings it to the very front (Android)
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   gap: 8, // Slightly more space between the dot and text
-  //   backgroundColor: '#1f2937', // Adjust based on your theme
-  //   paddingHorizontal: 12,
-  //   paddingVertical: 8,
-  //   borderRadius: 20,
-  //   // Remove any hardcoded 'width' or 'height' here if you have them so it stops clipping!
-  // },
-  // bleDotInner: { width: 8, height: 8, borderRadius: 4 },
-  // bleDotTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
