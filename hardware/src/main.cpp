@@ -11,6 +11,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "Adafruit_VL53L0X.h"
+#include <ArduinoJson.h>
 
 // VL53L0X
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
@@ -80,7 +81,7 @@ float Gx = 0, Gy = 0, Gz = 0;
 // bool targetReceived = false;
 // 
 
-String emergencyNumbers[] = {"+359897406640", "+359887265727"};
+String emergencyNumbers[] = {"+359897406640", "+359887265727", "+359886175035"};
 int numEmergencyContacts = 2;
 
 bool alertTriggered = false;
@@ -113,8 +114,6 @@ struct HttpTaskData
 };
 
 QueueHandle_t httpQueue;
-
-#include <ArduinoJson.h>
 
 void fetchNavigationData() {
     if (WiFi.status() == WL_CONNECTED) {
@@ -238,7 +237,7 @@ void updateDisplay()
     {
         display.setTextSize(2);
         display.setCursor(10, 25);
-        display.print("SOS ALERT!");
+        display.print("SOS ALERT");
     }
     else if (navigationActive)
     {

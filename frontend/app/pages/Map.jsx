@@ -150,6 +150,7 @@ export default function MapPage() {
   const [savedRoute, setSavedRoute] = useState(null);
   const [canResume, setCanResume] = useState(false);
 
+  // fetch navigation with backend
   const sendNavigationUpdate = async (dir, dist) => {
     try {
       await fetch(`${API_URL}/api/navigation/update/1`, {
@@ -357,6 +358,7 @@ export default function MapPage() {
 
   const reset = () => {
     stopWatcher();
+    sendNavigationUpdate('ARRIVE', -1); // !!! - to stop hardware display
     setDest(null); setSteps([]); setSummary(null);
     setActiveStep(0); setDistToNext(null); setRerouting(false);
     setSavedRoute(null); setCanResume(false);
