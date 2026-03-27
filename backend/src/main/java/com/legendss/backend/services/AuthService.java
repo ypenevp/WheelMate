@@ -128,7 +128,7 @@ public class AuthService {
     public UserResponse getUserData(String email) {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return new UserResponse(user.getEmail(), user.getUsername(), user.getRole());
+        return new UserResponse(user.getEmail(), user.getUsername(), user.getRole(), user.getId());
     }
 
     public List<User> getAllUsers(){

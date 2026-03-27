@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Modal,
     View,
@@ -7,11 +7,14 @@ import {
     TouchableOpacity,
     ScrollView,
     Pressable,
+    ActivityIndicator,
+    Alert
 } from 'react-native';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUser } from '../../context/UserContext.jsx';
+import { GetUserDetails, EditUserDetails } from '../services/userDetails.js';
 
 const SectionLabel = ({ icon, label }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 8 }}>
@@ -22,27 +25,7 @@ const SectionLabel = ({ icon, label }) => (
     </View>
 );
 
-const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== 'granted') {
-        alert('Sorry, we need camera roll permissions!');
-        return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-    });
-
-    if (!result.canceled) {
-        setProfileImage(result.assets[0].uri);
-    }
-};
-
-const Field = ({ label, defaultValue, style }) => (
+const Field = ({ label, value, onChangeText, style }) => (
     <View style={[{ flex: 1 }, style]}>
         {label && (
             <Text style={{ fontSize: 12, fontWeight: '500', color: '#9ca3af', marginBottom: 4 }}>
@@ -50,7 +33,8 @@ const Field = ({ label, defaultValue, style }) => (
             </Text>
         )}
         <TextInput
-            defaultValue={defaultValue}
+            value={value}
+            onChangeText={onChangeText}
             style={{
                 backgroundColor: '#f4f5f7',
                 borderRadius: 10,
@@ -66,9 +50,65 @@ const Field = ({ label, defaultValue, style }) => (
 );
 
 export default function PersonalInfoModal({ visible, onClose }) {
-    const [profileImage, setProfileImage] = React.useState(null);
     const { user: authUser, logout } = useAuth();
-    const { user: userDetails } = useUser();
+    const { user: userDetails, refreshUser } = useUser();
+
+    const [profileImage, setProfileImage] = useState(null);
+    const [address, setAddress] = useState('');
+    const [telephone, setTelephone] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (userDetails) {
+            setAddress(userDetails.address || '');
+            setTelephone(userDetails.telephone || '');
+            setProfileImage(userDetails.photo || null);
+        }
+    }, [userDetails, visible]);
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (status !== 'granted') {
+            alert('Sorry, we need camera roll permissions!');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setProfileImage(result.assets[0].uri);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!userDetails?.id) {
+            Alert.alert("Error", "User ID is missing.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            console.log("Saving profile with:", userDetails.id);
+            await EditUserDetails(userDetails.id, address, telephone, profileImage);
+            
+            Alert.alert("Success", "Profile updated successfully!");
+            
+            if (refreshUser) await refreshUser();
+            
+            onClose();
+        } catch (error) {
+            Alert.alert("Error", "Failed to update profile.");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -160,15 +200,15 @@ export default function PersonalInfoModal({ visible, onClose }) {
                                 }}
                             >
                                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
-                                    {userDetails?.username ? userDetails.username.charAt(0) : 'BS'}
+                                    {userDetails?.username ? userDetails.username.charAt(0).toUpperCase() : 'U'}
                                 </Text>
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
                                 <Text style={{ fontSize: 16, fontWeight: '600', color: '#1f2937' }}>
-                                    {userDetails?.username || 'Borislav Stoinev'}
+                                    {userDetails?.username || 'Username'}
                                 </Text>
                                 <Text style={{ fontSize: 13, color: '#9ca3af', marginTop: 1 }}>
-                                    {userDetails?.email || 'borislav@example.com'}
+                                    {userDetails?.email || 'email@example.com'}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={pickImage}>
@@ -178,16 +218,6 @@ export default function PersonalInfoModal({ visible, onClose }) {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Full Name */}
-                        <SectionLabel
-                            icon={<Feather name="user" size={16} color="#9ca3af" />}
-                            label="Full Name"
-                        />
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <Field label="First name" defaultValue={userDetails?.firstName || 'Borislav'} />
-                            <Field label="Last name" defaultValue={userDetails?.lastName || 'Stoinev'} />
-                        </View>
-
                         {/* Email */}
                         <SectionLabel
                             icon={<MaterialIcons name="mail-outline" size={16} color="#9ca3af" />}
@@ -195,16 +225,17 @@ export default function PersonalInfoModal({ visible, onClose }) {
                         />
                         <View>
                             <TextInput
-                                defaultValue={userDetails?.email || 'borislav@example.com'}
+                                editable={false}
+                                value={userDetails?.email || ''}
                                 style={{
-                                    backgroundColor: '#f4f5f7',
+                                    backgroundColor: '#e5e7eb', // Тъй като не може да се променя
                                     borderRadius: 10,
                                     paddingHorizontal: 14,
                                     paddingVertical: 12,
                                     fontSize: 15,
-                                    color: '#1f2937',
+                                    color: '#6b7280',
                                     borderWidth: 1,
-                                    borderColor: '#e5e7eb',
+                                    borderColor: '#d1d5db',
                                     paddingRight: 80,
                                 }}
                             />
@@ -244,7 +275,11 @@ export default function PersonalInfoModal({ visible, onClose }) {
                             >
                                 <Text style={{ fontSize: 13, color: '#6b7280' }}>🇧🇬 +359</Text>
                             </View>
-                            <Field defaultValue="888 123 456" style={{ flex: 1 }} />
+                            <Field
+                                value={telephone}
+                                onChangeText={setTelephone}
+                                style={{ flex: 1 }}
+                            />
                         </View>
 
                         {/* Address */}
@@ -252,12 +287,11 @@ export default function PersonalInfoModal({ visible, onClose }) {
                             icon={<Ionicons name="location-outline" size={16} color="#9ca3af" />}
                             label="Address"
                         />
-                        <Field defaultValue="ul. Vitosha 15" />
-                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                            <Field defaultValue="Sofia" />
-                            <Field defaultValue="Sofia" />
-                            <Field defaultValue="1000" />
-                        </View>
+                        <Field
+                            value={address}
+                            onChangeText={setAddress}
+                            style={{ marginBottom: 10 }}
+                        />
                     </ScrollView>
 
                     {/* Footer */}
@@ -272,18 +306,28 @@ export default function PersonalInfoModal({ visible, onClose }) {
                             borderTopColor: '#f3f4f6',
                         }}
                     >
-                        <TouchableOpacity onPress={onClose}>
-                            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>Cancel</Text>
+                        <TouchableOpacity onPress={onClose} disabled={loading}>
+                            <Text style={{ fontSize: 15, fontWeight: '600', color: loading ? '#9ca3af' : '#1f2937' }}>Cancel</Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity
+                            onPress={handleSave}
+                            disabled={loading}
                             style={{
-                                backgroundColor: '#3b82f6',
+                                backgroundColor: loading ? '#93c5fd' : '#3b82f6',
                                 paddingHorizontal: 24,
                                 paddingVertical: 12,
                                 borderRadius: 999,
+                                flexDirection: 'row',
+                                alignItems: 'center'
                             }}
                         >
-                            <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>Save changes</Text>
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                                ) : null}
+                            <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>
+                                {loading ? 'Saving...' : 'Save changes'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </Pressable>

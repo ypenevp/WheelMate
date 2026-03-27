@@ -32,6 +32,6 @@ public class AdminController {
 
         System.out.println("User " + request.getEmail() + " role updated to: " + request.getRole());
 
-        return new UserResponse(user.getEmail(), user.getUsername(), user.getRole());
+        return new UserResponse(user.getEmail(), user.getUsername(), user.getRole(), user.getId());
     }
 }
