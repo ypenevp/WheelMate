@@ -100,6 +100,10 @@ public class WheelChairService {
         if (payload.getPanicStatus() != null) {
             existing.setPanicStatus(payload.getPanicStatus());
         }
+        if (payload.getUserInchair() != null) {
+            existing.setUserInchair(payload.getUserInchair());
+        }
+
 
         this.wheelChairRepository.save(existing);
     }

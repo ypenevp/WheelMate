@@ -90,7 +90,7 @@
 // // stats
 // bool simReady = false;
 // bool lockdown = false;
-// bool userInChair = false;
+// bool userInchair = false;
 
 // unsigned long panicDebounceTime = 0;
 // unsigned long deactivateDebounceTime = 0;
@@ -752,13 +752,13 @@
 
 //     readMPU();
 
-//     // check if userInChair
+//     // check if userInchair
 //     if (lox.isRangeComplete())
 //     {
 //         int dist = lox.readRange();
 //         if (dist < 8190)
-//             userInChair = (dist <= SAVE_DISTANCE);
-//             if(userInChair == true){
+//             userInchair = (dist <= SAVE_DISTANCE);
+//             if(userInchair == true){
 //                 Serial.println("userinchair: true --------------------------------------");
 //             }
 //             else{
@@ -998,7 +998,8 @@ const unsigned long ALERT_DELAY_MS = 10000; // 10s cooldown
 // stats
 bool simReady = false;
 bool lockdown = false;
-bool userInChair = false;
+volatile bool userInchair = false; //!!!
+
 
 unsigned long panicDebounceTime = 0;
 unsigned long deactivateDebounceTime = 0;
@@ -1009,16 +1010,16 @@ bool lastDeactivateState = HIGH;
 unsigned long lastWiFiSend = 0;
 const unsigned long WIFI_SEND_INTERVAL = 5000;
 
-// Структура за предаване на данни към фоновия HTTP Task
-struct HttpTaskData {
+struct HttpTaskData
+{
     double lat;
     double lng;
     float speed;
     bool hasGps;
     bool panicStatus;
+    bool userInchair;
 };
 
-// Опашка за HTTP заявките
 QueueHandle_t httpQueue;
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1049,6 +1050,15 @@ void drawArrow(String dir)
         display.drawCircle(cx, cy + 2, 8, WHITE);
         display.fillRect(cx - 10, cy + 2, 20, 10, BLACK);
         display.fillTriangle(cx - 8, cy + 2, cx - 12, cy - 4, cx - 4, cy - 4, WHITE);
+    }
+    else if (dir == "ARRIVE")
+    {
+        // Chequered flag / destination pin
+        display.drawCircle(cx, cy - 4, 10, WHITE);
+        display.fillCircle(cx, cy - 4, 6, WHITE);
+        display.fillCircle(cx, cy - 4, 3, BLACK);
+        // Stem
+        display.fillRect(cx - 1, cy + 6, 3, 8, WHITE);
     }
 }
 
@@ -1450,39 +1460,48 @@ void alertSignalBlinkLED()
     }
 }
 
-// Тази функция сега само записва данните в опашката и върща управлението веднага (не блокира)
 void sendToBackend(bool panicStatus)
 {
     HttpTaskData data;
     data.panicStatus = panicStatus;
-    
-    if (gps.location.isValid()) {
+     data.userInchair = userInchair;
+    // data.userInchair = userInChair;
+
+    if (gps.location.isValid())
+    {
         data.lat = gps.location.lat();
         data.lng = gps.location.lng();
         data.hasGps = true;
-    } else {
+    }
+    else
+    {
         data.hasGps = false;
     }
-    
-    if (gps.speed.isValid()) {
+
+    if (gps.speed.isValid())
+    {
         data.speed = gps.speed.kmph();
-    } else {
+    }
+    else
+    {
         data.speed = 0.0;
     }
 
-    // Изпращане към опашката без изчакване/блокиране
-    if (httpQueue != NULL) {
+    if (httpQueue != NULL)
+    {
         xQueueSend(httpQueue, &data, (TickType_t)0);
     }
 }
 
-// Фонов процес за изпращане по HTTP, който работи на отделно ядро (Core 0)
-void httpTask(void* pvParameters) {
+void httpTask(void *pvParameters)
+{
     HttpTaskData data;
-    for(;;) {
-        // Чака докато се появи заявка в опашката
-        if (xQueueReceive(httpQueue, &data, portMAX_DELAY) == pdPASS) {
-            if (WiFi.status() == WL_CONNECTED) {
+    for (;;)
+    {
+        if (xQueueReceive(httpQueue, &data, portMAX_DELAY) == pdPASS)
+        {
+            if (WiFi.status() == WL_CONNECTED)
+            {
                 HTTPClient http;
                 http.begin(BACKEND_URL);
                 http.addHeader("Content-Type", "application/json");
@@ -1490,23 +1509,31 @@ void httpTask(void* pvParameters) {
                 String payload = "{";
 
                 // GPS
-                if (data.hasGps) {
+                if (data.hasGps)
+                {
                     payload += "\"gpsCoordinate\":\"";
                     payload += String(data.lat, 6) + " " + String(data.lng, 6);
                     payload += "\",";
-                } else {
+                }
+                else
+                {
                     payload += "\"gpsCoordinate\":null,";
                 }
 
-                // Speed
+                      // Speed
                 payload += "\"speed\":" + String(data.speed, 1) + ",";
 
-                // Token (Трябва да е дефиниран в secrets.h)
+                // Token 
                 payload += "\"token\":\"" + String(DEVICE_TOKEN) + "\",";
 
                 // Panic status
                 payload += "\"panicStatus\":";
                 payload += (data.panicStatus ? "true" : "false");
+                payload += ","; // <--- ВАЖНО: добави запетая тук!
+
+                // User in chair
+                payload += "\"userInchair\":";
+                payload += (data.userInchair ? "true" : "false");
 
                 payload += "}";
 
@@ -1517,16 +1544,21 @@ void httpTask(void* pvParameters) {
 
                 Serial.println("Backend response code: " + String(httpResponseCode));
 
-                if (httpResponseCode > 0) {
+                if (httpResponseCode > 0)
+                {
                     String responseBody = http.getString();
                     Serial.println("Backend response body:");
                     Serial.println(responseBody);
-                } else {
+                }
+                else
+                {
                     Serial.println("Error sending request. Code: " + String(httpResponseCode));
                 }
 
                 http.end();
-            } else {
+            }
+            else
+            {
                 Serial.println("WiFi not connected, skipped send (Task).");
             }
         }
@@ -1654,20 +1686,18 @@ void setup()
         Serial.println("\nWiFi FAILED!");
     }
 
-    // Създаваме опашката за HTTP заявки (често задържа до 10 съобщения)
     httpQueue = xQueueCreate(10, sizeof(HttpTaskData));
-    
-    if (httpQueue != NULL) {
-        // Стартиране на HTTP процеса на Ядро 0 (Core 0), за да не блокира главния loop, който се върти на Ядро 1
+
+    if (httpQueue != NULL)
+    {
         xTaskCreatePinnedToCore(
-            httpTask,       // Функция на процеса
-            "HTTP Task",    // Име за дебъг
-            8192,           // Размер на стека
-            NULL,           // Параметри
-            1,              // Приоритет
-            NULL,           // Разновидност на хендлера
-            0               // Номер на ядрото (Core 0 за мрежови операций)
-        );
+            httpTask,
+            "HTTP Task",
+            8192,
+            NULL,
+            1,
+            NULL,
+            0);
     }
 }
 
@@ -1704,19 +1734,15 @@ void loop()
 
     readMPU();
 
-    // check if userInChair
+    // check if userInchair
     if (lox.isRangeComplete())
     {
         int dist = lox.readRange();
         if (dist < 8190)
-            userInChair = (dist <= SAVE_DISTANCE);
-            if(userInChair == true){
-                Serial.println("userinchair: true --------------------------------------");
-            }
-            else{
-                Serial.println("userinchair: false -------------------------------");
-            }
-
+        {
+            userInchair = (dist <= SAVE_DISTANCE);
+            Serial.println(userInchair ? "userinchair: true" : "userinchair: false");
+        }
     }
     while (gpsSerial.available())
     {

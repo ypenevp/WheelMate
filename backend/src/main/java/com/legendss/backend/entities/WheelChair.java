@@ -20,6 +20,9 @@ public class WheelChair {
     @Column(nullable = false)
     private Integer speed;
 
+    @Column(name = "userInchair")
+    private Boolean userInchair;
+
     @Column(nullable = false)
     private Boolean panicStatus;
 
@@ -30,7 +33,9 @@ public class WheelChair {
     private String token;
 
     @PrePersist
-    public void setStatus(){
+    public void setInit(){
         this.panicStatus = false;
+        this.userInchair = false;
     }
+
 }

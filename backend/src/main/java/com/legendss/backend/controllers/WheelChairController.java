@@ -42,6 +42,7 @@ public class WheelChairController {
         defaultWheelChair.setGpsCoordinate("0.0,0.0");
         defaultWheelChair.setSpeed(0);
         defaultWheelChair.setPanicStatus(false);
+        defaultWheelChair.setUserInchair(false);
 
         return this.wheelChairService.addWheelChair(defaultWheelChair, user);
     }
