@@ -83,7 +83,7 @@ function buildMapHTML(lat, lng) {
 <div id="map"></div>
 <script>
 var map=L.map('map',{zoomControl:true}).setView([${lat},${lng}],15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19}).addTo(map);
 
 var userIcon=L.divIcon({className:'',html:'<div class="user-dot" style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
 var userMarker=L.marker([${lat},${lng}],{icon:userIcon}).addTo(map);
@@ -652,7 +652,7 @@ const s = StyleSheet.create({
   panel: {
     backgroundColor: '#111827', borderTopLeftRadius: 22, borderTopRightRadius: 22,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
-    maxHeight: SCREEN_HEIGHT * 0.52, minHeight: 500,
+    maxHeight: SCREEN_HEIGHT * 0.52, minHeight: 400,
     borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000', shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.5, shadowRadius: 16, elevation: 20,
