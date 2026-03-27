@@ -46,6 +46,16 @@ WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-
 - Sensor indicating whether the wheelchair is moving too fast.
 
 ---
+## Schematic
+
+![Modules architecture](docx/images/modules.png)
+---
+![Modules architecture](docx/images/logicSheme.png)
+---
+![Modules architecture](docx/images/project.jpg)
+
+---
+
 
 ## API Documentation
 
@@ -114,14 +124,6 @@ Base URL: `http://localhost:7070/api`
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `PATCH` | `/admin/users/role` | Update user's role . |
-
----
-## Schematic
-
-![Modules architecture](docx/images/modules.png)
----
-![Modules architecture](docx/images/logicSheme.png)
-
 
 ---
 
