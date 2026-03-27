@@ -156,12 +156,12 @@ export default function Monitoring() {
             ) : (
                 <View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ede9fe', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                            <Ionicons name="people" size={17} color="#7c3aed" />
+                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#a3c0ff', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                            <Ionicons name="people" size={17} color="#2f61b1" />
                         </View>
                         <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>Relatives</Text>
-                        <View style={{ marginLeft: 'auto', backgroundColor: '#ede9fe', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#7c3aed' }}>{relativesData.length}</Text>
+                        <View style={{ marginLeft: 'auto', backgroundColor: '#a3c0ff', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#2f61b1' }}>{relativesData.length}</Text>
                         </View>
                     </View>
 
@@ -176,8 +176,8 @@ export default function Monitoring() {
                                     key={relative.id}
                                     style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: '#f3f4f6' }}
                                 >
-                                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#ede9fe', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-                                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#7c3aed' }}>
+                                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#a3c0ff', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#2f61b1' }}>
                                             {relative.username?.[0]?.toUpperCase() || '?'}
                                         </Text>
                                     </View>
@@ -185,8 +185,8 @@ export default function Monitoring() {
                                         <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>{relative.username}</Text>
                                         <Text style={{ fontSize: 13, color: '#9ca3af', marginTop: 2 }}>{relative.email}</Text>
                                     </View>
-                                    <View style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: '#ede9fe', borderRadius: 20 }}>
-                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#7c3aed' }}>Relative</Text>
+                                    <View style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: '#a3c0ff', borderRadius: 20 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#2f61b1' }}>Relative</Text>
                                     </View>
                                 </View>
                             ))}
