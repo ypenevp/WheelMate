@@ -1,9 +1,10 @@
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import "../global.css"
 import { MaterialIcons, Feather, Ionicons } from '@expo/vector-icons';
-import { postWheelChair, getAllWheelChair } from '../services/wheelChair.js';
+import { getAllWheelChair } from '../services/wheelChair.js';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { postWheelChair } from '../services/wheelChair.js';
 
 export default function Monitoring() {
     const [wheelchairs, setWheelchairs] = useState([]);
@@ -21,12 +22,20 @@ export default function Monitoring() {
         };
         fetchWheelchairs();
     }, []);
+        
 
     return (
         <ScrollView contentContainerStyle={{ alignItems: 'center', paddingTop: 20, paddingBottom: 20, flexDirection: 'column' }}>
-            <Text className="font-bold text-blue-500 text-2xl mb-4">All Wheelchairs</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('FormData')} style = {{flexDirection: "row", marginBottom: 20, paddingHorizontal: 15, paddingVertical: 10, backgroundColor: '#3b82f6', borderRadius: 9999 }}>
-                <Text style={{ color: 'white', flexBasis: "flex-end" }}>+</Text>
+            
+            <Text className="font-bold text-blue-500 text-4xl mb-4">All Wheelchairs</Text>
+            <TouchableOpacity onPress={async () => {
+                try {
+                    await postWheelChair();
+                } catch (error) {
+                    console.error("Error posting new wheelchair:", error);
+                }
+            }} style = {{flexDirection: "row", width: ['100%'], backgroundColor: '#3b82f6',  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9999 }}>
+                <Text style={{ color: 'white', fontSize: 16 }}>+</Text>
             </TouchableOpacity>
 
             {wheelchairs.length === 0 ? (
@@ -39,7 +48,7 @@ export default function Monitoring() {
                         
                         <Text className="text-gray-700">Coordinates: {wheelchair.gpsCoordinate}</Text>
 
-                        <Text className="text-gray-600 text-xs mt-2">
+                        <Text className="text-gray-600 text-xl mt-2 text-underline">
                             Status: {wheelchair.panicStatus ? "PANIC" : "Normal"}
                         </Text>
                     </View>

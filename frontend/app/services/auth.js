@@ -2,16 +2,20 @@ import { API_URL } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from 'jwt-decode';
 
-export const handleSignUp = async ({ username, password, email }) => {
+export const handleSignUp = async ({ username, password, email, role }) => {
     try {
         console.log("API URL:", API_URL);
 
-        const response = await fetch(`${API_URL}/api/auth/register`, {
+        console.log("Signup data:", { username, email, role });
+        const roleSubmit = role.toUpperCase();
+        console.log("Role after toUpperCase:", roleSubmit);
+
+        const response = await fetch(`${API_URL}/api/auth/register?role=${roleSubmit}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ username, password, email }),
+            body: JSON.stringify({ username, password, email, roleSubmit }),
         });
 
         const responseText = await response.text();

@@ -21,7 +21,7 @@ export default function Home() {
                     </Text>
                     <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 5 }}>
                         <TouchableOpacity  style={{ backgroundColor: '#3b82f6', borderRadius: 9999, paddingVertical: 12, paddingHorizontal: 24, alignSelf: 'flex-start', marginTop: 16 }} activeOpacity={0.7} onPress={() => navigation.navigate('FormData')}>
-                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add new wheelchair</Text>
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>+ Add new wheelchair</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

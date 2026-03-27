@@ -460,95 +460,6 @@ export default function Settings({ navigation }) {
                         marginLeft: 56,
                     }} />
 
-                    <SettingRow
-                        icon={<MaterialIcons name="lock" size={18} color="#6b7280" />}
-                        label="Change Password"
-                        onPress={() => {
-                            console.log('Change Password pressed');
-                        }}
-                    />
-                    <View style={{
-                        height: 1,
-                        backgroundColor: '#f3f4f6',
-                        marginLeft: 56,
-                    }} />
-
-                    <SettingRow
-                        icon={<Ionicons name="notifications-outline" size={18} color="#6b7280" />}
-                        label="Notifications"
-                        isCheckbox={true}
-                        isChecked={notificationsEnabled}
-                        onCheckChange={setNotificationsEnabled}
-                    />
-                </View>
-
-                <SectionTitle>PREFERENCES</SectionTitle>
-                <View style={{
-                    backgroundColor: '#fff',
-                    borderRadius: 16,
-                    marginBottom: 16,
-                    overflow: 'visible',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 3,
-                    elevation: 1,
-                }}>
-                    <SettingRow
-                        icon={<Ionicons name="moon-outline" size={18} color="#6b7280" />}
-                        label="Dark Mode"
-                        trailing={
-                            <CustomToggle
-                                value={darkMode}
-                                onValueChange={setDarkMode}
-                            />
-                        }
-                        onPress={() => setDarkMode((p) => !p)}
-                    />
-                    <View style={{
-                        height: 1,
-                        backgroundColor: '#f3f4f6',
-                        marginLeft: 56,
-                    }} />
-
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 16,
-                            paddingVertical: 14,
-                            gap: 14,
-                            position: 'relative',
-                            zIndex: 1000,
-                        }}
-                    >
-                        <View style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 12,
-                            backgroundColor: '#f3f4f6',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <Ionicons name="globe-outline" size={18} color="#6b7280" />
-                        </View>
-
-                        <Text style={{
-                            flex: 1,
-                            fontSize: 16,
-                            fontWeight: '500',
-                            color: '#111827',
-                        }}>
-                            Language
-                        </Text>
-
-                        <LanguageDropdown
-                            selectedLanguage={selectedLanguage}
-                            onSelect={handleLanguageChange}
-                            isOpen={languageDropdownOpen}
-                            onToggle={() => setLanguageDropdownOpen(!languageDropdownOpen)}
-                        />
-                    </View>
                 </View>
 
                 {isLoggedIn && (
@@ -572,8 +483,6 @@ export default function Settings({ navigation }) {
                         />
                     </View>
                 )}
-
-                <View style={{ height: 50 }} />
             </ScrollView>
 
             <PersonalInfoModal

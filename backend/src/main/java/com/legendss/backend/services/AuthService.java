@@ -59,6 +59,7 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setPassword(encoder.encode(request.getPassword()));
 
+
         // 2. Задаваме подадената роля
         user.setRole(role);
 
@@ -70,6 +71,7 @@ public class AuthService {
         userProfile.setUser(user);
         userProfile.setTheme(THEME.LIGHT);
         userProfile.setTelephone("");
+        userProfile.setAddress("");
 
         userProfileRepository.save(userProfile);
 

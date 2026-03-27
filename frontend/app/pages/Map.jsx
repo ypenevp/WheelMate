@@ -75,7 +75,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).a
 var userIcon=L.divIcon({className:'',html:'<div class="user-dot" style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
 var userMarker=L.marker([${lat},${lng}],{icon:userIcon}).addTo(map);
 
-var destIcon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#22c55e;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.4);transform:rotate(-45deg)"></div>',iconSize:[22,22],iconAnchor:[11,22]});
+// ПРОМЕНЕНО: dest icon вече е син (#3b82f6)
+var destIcon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.4);transform:rotate(-45deg)"></div>',iconSize:[22,22],iconAnchor:[11,22]});
 var destMarker=null,routeLines=[];
 
 map.on('click',function(e){
@@ -92,7 +93,8 @@ function handleMsg(e){
       var c=msg.coords.map(function(p){return[p.latitude,p.longitude]});
       if(c.length>1){
         routeLines.push(L.polyline(c,{color:'rgba(0,0,0,.15)',weight:8}).addTo(map));
-        routeLines.push(L.polyline(c,{color:'#22c55e',weight:5}).addTo(map));
+        // ПРОМЕНЕНО: цветът на пътя вече е син (#3b82f6)
+        routeLines.push(L.polyline(c,{color:'#3b82f6',weight:5}).addTo(map));
         if(msg.type==='route')map.fitBounds(routeLines[1].getBounds(),{padding:[40,40]});
       }
     }
@@ -362,12 +364,12 @@ export default function MapPage() {
           onMessage={onMessage}
           javaScriptEnabled domStorageEnabled startInLoadingState
           renderLoading={() => (
-            <View style={s.placeholder}><ActivityIndicator size="large" color="#22c55e"/></View>
+            <View style={s.placeholder}><ActivityIndicator size="large" color="#2473c8"/></View>
           )}
         />
       ) : (
         <View style={s.placeholder}>
-          <ActivityIndicator size="large" color="#22c55e"/>
+          <ActivityIndicator size="large" color="#2480c6"/>
           <Text style={s.muted}>Locating you…</Text>
         </View>
       )}
@@ -431,7 +433,7 @@ export default function MapPage() {
           {/* ROUTING */}
           {phase === 'routing' && (
             <View style={s.centered}>
-              <ActivityIndicator size="large" color="#22c55e"/>
+              <ActivityIndicator size="large" color="#2581cd"/>
               <Text style={s.muted}>Finding accessible route…</Text>
             </View>
           )}
@@ -480,7 +482,7 @@ export default function MapPage() {
                         <Text style={[s.arrow, isDone && {opacity:0.3}]}>{STEP_ARROW[step.type]??'→'}</Text>
                       </View>
                       <View style={s.stepMid}>
-                        <Text style={[s.stepLabel, isDone && {color:'#374151'}, isActive && {color:'#22c55e'}]}>
+                        <Text style={[s.stepLabel, isDone && {color:'#374151'}, isActive && {color:'#2581cd'}]}>
                           {STEP_LABEL[step.type] ?? 'CONTINUE'}
                         </Text>
                       </View>
@@ -533,7 +535,7 @@ const s = StyleSheet.create({
   arrivedEmoji: { fontSize:64 },
   arrivedTitle: { color:'#f9fafb', fontSize:26, fontWeight:'800' },
   arrivedSub:   { color:'#6b7280', fontSize:14 },
-  arrivedBtn:   { marginTop:8, backgroundColor:'#22c55e', paddingHorizontal:40, paddingVertical:14, borderRadius:14 },
+  arrivedBtn:   { marginTop:8, backgroundColor:'#2581cd', paddingHorizontal:40, paddingVertical:14, borderRadius:14 },
   arrivedBtnTxt:{ color:'#fff', fontWeight:'700', fontSize:16 },
 
   panel: {
@@ -552,16 +554,17 @@ const s = StyleSheet.create({
   closeTxt: { color:'#6b7280', fontWeight:'600', fontSize:14 },
 
   resumeBtn: {
-    backgroundColor:'rgba(34,197,94,0.15)', borderWidth:1,
-    borderColor:'rgba(34,197,94,0.4)', borderRadius:20,
+    // ПРОМЕНЕНО
+    backgroundColor:'rgba(59,130,246,0.15)', borderWidth:1,
+    borderColor:'#2581cd', borderRadius:20,
     paddingHorizontal:12, paddingVertical:5,
   },
-  resumeTxt: { color:'#22c55e', fontWeight:'700', fontSize:13 },
+  resumeTxt: { color:'#2581cd', fontWeight:'700', fontSize:13 },
 
   goBtn: {
     alignItems:'center', justifyContent:'center',
-    backgroundColor:'#22c55e', borderRadius:14, paddingVertical:15,
-    shadowColor:'#22c55e', shadowOffset:{width:0,height:4},
+    backgroundColor:'#2581cd', borderRadius:14, paddingVertical:15,
+    shadowColor:'#2581cd', shadowOffset:{width:0,height:4},
     shadowOpacity:0.35, shadowRadius:10, elevation:8,
   },
   goBtnTxt: { color:'#fff', fontWeight:'700', fontSize:16 },
@@ -572,7 +575,8 @@ const s = StyleSheet.create({
     flexDirection:'row', alignItems:'center',
     backgroundColor:'#1f2937', borderRadius:16,
     padding:14, marginBottom:10, gap:12,
-    borderWidth:1, borderColor:'rgba(34,197,94,0.25)',
+    // ПРОМЕНЕНО
+    borderWidth:1, borderColor:'rgba(59,130,246,0.25)',
   },
   heroArrow:   { fontSize:36, width:48, textAlign:'center' },
   heroMid:     { flex:1 },
@@ -594,8 +598,9 @@ const s = StyleSheet.create({
   stepRowDone:   { opacity:0.35 },
 
   badge:       { width:36,height:36,borderRadius:10,backgroundColor:'#1f2937',alignItems:'center',justifyContent:'center',flexShrink:0 },
-  badgeActive: { backgroundColor:'rgba(34,197,94,0.2)', borderWidth:1, borderColor:'rgba(34,197,94,0.4)' },
-  badgeArrive: { backgroundColor:'rgba(34,197,94,0.15)' },
+  // ПРОМЕНЕНО
+  badgeActive: { backgroundColor:'rgba(59,130,246,0.2)', borderWidth:1, borderColor:'rgba(59,130,246,0.4)' },
+  badgeArrive: { backgroundColor:'rgba(59,130,246,0.15)' },
   arrow:       { fontSize:17 },
   stepMid:     { flex:1 },
   stepLabel:   { color:'#9ca3af', fontSize:13, fontWeight:'700', letterSpacing:0.5 },

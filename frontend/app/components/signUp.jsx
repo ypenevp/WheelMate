@@ -17,9 +17,22 @@ export default function SignUp({ onLoginPress, onClose, onShowVerify }) {
     const [passwordFocused, setPasswordFocused] = useState(false);
     const [repeatPasswordFocused, setRepeatPasswordFocused] = useState(false);
 
+    const [selectedOption, setSelectedOption] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    const categories = [
+        { label: "User", value: "USER" },
+        { label: "CareTaker", value: "CARETAKER" },
+        { label: "Relative", value: "RELATIVE" },
+    ];
+
+    const toggleDropdown = () => {
+        setShowDropdown(!showDropdown);
+    };
+
     const onSignUpPress = async () => {
         setError("");
-        if (!email || !username || !password || !repeatPassword) {
+        if (!email || !username || !password || !repeatPassword || !selectedOption) {
             setError("Please fill in all fields.");
             return;
         }
@@ -28,7 +41,7 @@ export default function SignUp({ onLoginPress, onClose, onShowVerify }) {
             return;
         }
         setLoading(true);
-        const result = await handleSignUp({ username, password, email });
+        const result = await handleSignUp({ username, password, email, role: selectedOption });
         setTimeout(() => setLoading(false), 1000);
         if (result.ok) {
             if (onShowVerify) onShowVerify();
@@ -105,6 +118,94 @@ export default function SignUp({ onLoginPress, onClose, onShowVerify }) {
                 {renderField('🔒', 'Repeat Password', repeatPassword, setRepeatPassword, repeatPasswordFocused, setRepeatPasswordFocused,
                     { placeholder: '••••••••', secure: true, valid: password && repeatPassword && password === repeatPassword })}
 
+                <View style={{
+                    width: "100%",
+                    marginBottom: 15,
+                    zIndex: 1000,
+                }}>
+                    <Text style={{
+                        fontSize: 16,
+                        fontWeight: "500",
+                        color: "#555",
+                        marginBottom: 8,
+                    }}>Select Role</Text>
+
+                    <TouchableOpacity
+                        style={{
+                            width: "100%",
+                            borderWidth: 1,
+                            borderColor: selectedOption ? "#15803d" : "#d1d5db",
+                            borderRadius: 16,
+                            paddingHorizontal: 20,
+                            paddingVertical: 12,
+                            backgroundColor: selectedOption ? "#f0f9f0" : "#F7FAFC",
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                        }}
+                        onPress={toggleDropdown}
+                    >
+                        <Text style={{
+                            fontSize: 18,
+                            color: selectedOption ? "#222" : "#888",
+                            fontWeight: "500",
+                        }}>
+                            {selectedOption || "Choose a role"}
+                        </Text>
+                        <Text style={{
+                            fontSize: 16,
+                            color: "#666",
+                            transform: [{ rotate: showDropdown ? '180deg' : '0deg' }]
+                        }}>▼</Text>
+                    </TouchableOpacity>
+
+                    {showDropdown && (
+                        <View style={{
+                            position: "absolute",
+                            top: 70,
+                            left: 0,
+                            right: 0,
+                            backgroundColor: "#fff",
+                            borderWidth: 1,
+                            borderColor: "#d1d5db",
+                            borderRadius: 16,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.15,
+                            shadowRadius: 8,
+                            elevation: 5,
+                            maxHeight: 200,
+                            zIndex: 1001,
+                        }}>
+                            <ScrollView style={{ maxHeight: 200 }}>
+                                {categories.map((category, index) => (
+                                    <TouchableOpacity
+                                        key={category.value}
+                                        style={{
+                                            paddingHorizontal: 20,
+                                            paddingVertical: 12,
+                                            borderBottomWidth: index < categories.length - 1 ? 1 : 0,
+                                            borderBottomColor: "#f3f4f6",
+                                        }}
+                                        onPress={() => {
+                                            setSelectedOption(category.label);
+                                            setShowDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={{
+                                            fontSize: 16,
+                                            color: "#222",
+                                            fontWeight: selectedOption === category.label ? "600" : "400",
+                                            backgroundColor: selectedOption === category.label ? "#f0f9f0" : "transparent",
+                                        }}>
+                                            {category.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+                </View>
+
                 <TouchableOpacity
                     style={{
                         width: "100%", backgroundColor: loading ? "#94a3b8" : BLUE,
@@ -130,7 +231,8 @@ export default function SignUp({ onLoginPress, onClose, onShowVerify }) {
                     </TouchableOpacity>
                 </View>
 
-                
+
+
             </View>
         </ScrollView>
     );

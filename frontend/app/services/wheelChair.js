@@ -1,7 +1,7 @@
 import { API_URL } from '@env'
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const postWheelChair = async ({speed, GPScoordinates}) => {
+export const postWheelChair = async () => {
     try {
         const token = await AsyncStorage.getItem("access");
 
@@ -10,21 +10,11 @@ export const postWheelChair = async ({speed, GPScoordinates}) => {
             throw new Error("No authentication token found");
         }
 
-        const payload = {
-            gpsCoordinate: GPScoordinates, // Java expects 'gpsCoordinate'
-            speed: parseInt(speed),        // Ensure speed is a number
-            panicStatus: false             // Default value
-        };
-
-        console.log("Sending payload:", JSON.stringify(payload));
-
-        const response = await fetch(`${API_URL}/wheelchair/addwheelchair`, {
+        const response = await fetch(`${API_URL}/api/wheelchairs/wheelchair/add`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
             },
-            body: JSON.stringify(payload)
         });
 
         if (response.ok) {
@@ -52,7 +42,7 @@ export const getAllWheelChair = async() => {
             return [];
         }
 
-        const response = await fetch(`${API_URL}/wheelchair/getallwheelchair`, {
+        const response = await fetch(`${API_URL}/api/wheelchairs/wheelchair/my/associated`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
