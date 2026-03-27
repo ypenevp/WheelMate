@@ -8,7 +8,7 @@ import Home from './pages/Home.jsx';
 import Map from './pages/Map.jsx';
 import Settings from './pages/Settings.jsx';
 import Monitoring from './pages/Monitoring.jsx';
-import FormData from './pages/FormWheelchair.jsx';
+import RelativesCareTakers from './pages/RelativesCareTakers.jsx';
 
 import TopNav from './components/topNav.jsx';
 import BottomNav from './components/bottomNav.jsx';
@@ -63,7 +63,7 @@ function RootLayout() {
                     <Stack.Screen name="Map" component={Map} />
                     <Stack.Screen name="Settings" component={Settings} />
                     <Stack.Screen name="Monitoring" component={Monitoring} />
-                    <Stack.Screen name="FormData" component={FormData} />
+                    <Stack.Screen name="RelativesCareTakers" component={RelativesCareTakers} />
                 </Stack.Navigator>
             </View>
 
