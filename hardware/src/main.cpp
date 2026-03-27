@@ -116,8 +116,6 @@ QueueHandle_t httpQueue;
 
 #include <ArduinoJson.h>
 
-const char* GET_URL = "http://192.168.1.100:8080/api/navigation/get/1"; // Replace with your IP
-
 void fetchNavigationData() {
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
