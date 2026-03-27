@@ -47,6 +47,7 @@ WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-
 ## API Documentation
 
 Base URL: `http://localhost:7070/api`
+
 ### Wheelchair
 
 | Method | Endpoint | Description |
@@ -71,6 +72,17 @@ Base URL: `http://localhost:7070/api`
 
 ---
 
+### Reletionships
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST`   | `/caretaker/add` | Connect caretaker with user. |
+| `POST`   | `/relative/add` | Connect relative with user. |
+| `GET`    | `/caretakers` | Get all caretaker. |
+| `GET`    | `/relatives` | Get all relatives. |
+
+---
+
 ### Authentication
 
 | Method | Endpoint | Description |
@@ -87,7 +99,7 @@ Base URL: `http://localhost:7070/api`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `PATCH` | `/admin/users/role` | Update a user's role. |
+| `PATCH` | `/admin/users/role` | Update user's role . |
 
 ---
 
