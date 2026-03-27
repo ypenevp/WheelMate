@@ -114,6 +114,48 @@ struct HttpTaskData
 
 QueueHandle_t httpQueue;
 
+#include <ArduinoJson.h>
+
+const char* GET_URL = "http://192.168.1.100:8080/api/navigation/get/1"; // Replace with your IP
+
+void fetchNavigationData() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(GET_URL);
+        
+        int httpResponseCode = http.GET();
+        if (httpResponseCode == 200) {
+            String payload = http.getString();
+            
+            StaticJsonDocument<200> doc;
+            DeserializationError error = deserializeJson(doc, payload);
+            
+            if (!error) {
+                const char* pos = doc["position"];
+                double dist = doc["distance"];
+                
+                direction = String(pos);
+                distance_m = (int)dist;
+                
+                if (direction == "ARRIVE" || distance_m < 0) {
+                     navigationActive = false; 
+                } else {
+                     navigationActive = true;
+                }
+            } else {
+                Serial.print("deserializeJson() failed: ");
+                Serial.println(error.c_str());
+            }
+        } else {
+            Serial.print("Error code: ");
+            Serial.println(httpResponseCode);
+        }
+        
+        http.end();
+    }
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // display manage functions
 
@@ -202,16 +244,25 @@ void updateDisplay()
     }
     else if (navigationActive)
     {
-        display.setTextSize(1);
-        display.setCursor(0, 0);
+        display.setTextSize(2);
+        
+        // Center the direction text
+        int16_t x1, y1;
+        uint16_t w, h;
+        display.getTextBounds(direction, 0, 0, &x1, &y1, &w, &h);
+        display.setCursor((SCREEN_WIDTH - w) / 2, 0);
+        
         display.print(direction);
 
         drawArrow(direction);
 
         display.setTextSize(2);
-        display.setCursor(30, 50);
-        display.print(distance_m);
-        display.print("m");
+        
+        String distStr = String(distance_m) + "m";
+        display.getTextBounds(distStr, 0, 0, &x1, &y1, &w, &h);
+        display.setCursor((SCREEN_WIDTH - w) / 2, 50);
+        
+        display.print(distStr);
     }
     else
     {
@@ -943,11 +994,12 @@ void loop()
         lastDisplayUpdate = millis();
     }
 
-    // if (millis() - lastBLEUpdate > 5000)
-    // {
-    //     lastBLEUpdate = millis();
-    //     sendGPSData = true;
-    // }
+    static unsigned long lastNavFetch = 0;
+    if (millis() - lastNavFetch > 2000)
+    {
+        lastNavFetch = millis();
+        fetchNavigationData();
+    }
 
     if (millis() - lastWiFiSend > WIFI_SEND_INTERVAL)
     {
