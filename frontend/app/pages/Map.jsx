@@ -5,24 +5,37 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
+import { BleManager } from 'react-native-ble-plx';
 import "../global.css";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ORS_API_KEY = process.env.EXPO_PUBLIC_ORS_API_KEY;
 
+// ── BLE ────────────────────────────────────────────────────────────
+const BLE_DEVICE_NAME = 'Wheelchair-Nav';
+const BLE_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const BLE_RX_CHAR = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // phone→ESP32
+
+// Normalise step type → canonical label the ESP32 drawArrow understands
+const BLE_DIR = {
+  0: 'LEFT', 1: 'RIGHT', 2: 'LEFT', 3: 'RIGHT',
+  4: 'LEFT', 5: 'RIGHT', 6: 'STRAIGHT', 7: 'STRAIGHT',
+  8: 'STRAIGHT', 10: 'UTURN', 11: 'ARRIVE',
+};
+
 // Simple OLED-friendly labels — no prose directions
 const STEP_LABEL = {
-  0: 'LEFT',        1: 'RIGHT',         2: 'SHARP LEFT',
-  3: 'SHARP RIGHT', 4: 'SLIGHT LEFT',   5: 'SLIGHT RIGHT',
-  6: 'STRAIGHT',    7: 'ROUNDABOUT',    8: 'EXIT ROUNDABOUT',
-  10: 'U-TURN',     11: 'ARRIVE',       12: 'DEPART',
+  0: 'LEFT', 1: 'RIGHT', 2: 'SHARP LEFT',
+  3: 'SHARP RIGHT', 4: 'SLIGHT LEFT', 5: 'SLIGHT RIGHT',
+  6: 'STRAIGHT', 7: 'ROUNDABOUT', 8: 'EXIT ROUNDABOUT',
+  10: 'U-TURN', 11: 'ARRIVE', 12: 'DEPART',
 };
 const STEP_ARROW = {
   0: '↰', 1: '↱', 2: '↰', 3: '↱', 4: '↖', 5: '↗',
   6: '↑', 7: '⟳', 8: '⟳', 10: '↩', 11: '⚑', 12: '●',
 };
 
-const ARRIVE_RADIUS   = 10;    // metres — destination reached
+const ARRIVE_RADIUS = 10;    // metres — destination reached
 const OFF_COURSE_DIST = 20;    // metres from route → reroute (was 40)
 const REROUTE_COOLDOWN = 15000; // ms minimum between reroutes
 const WAYPOINT_RADIUS = 25;    // metres — advance to next step
@@ -34,7 +47,7 @@ function formatDist(m) {
 function formatETA(seconds) {
   if (seconds == null) return null;
   const m = Math.round(seconds / 60);
-  if (m < 1)  return '< 1 min';
+  if (m < 1) return '< 1 min';
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60), rem = m % 60;
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
@@ -42,11 +55,11 @@ function formatETA(seconds) {
 
 function haversine(a, b) {
   const R = 6371000;
-  const φ1 = (a.latitude  * Math.PI) / 180;
-  const φ2 = (b.latitude  * Math.PI) / 180;
-  const Δφ = ((b.latitude  - a.latitude)  * Math.PI) / 180;
+  const φ1 = (a.latitude * Math.PI) / 180;
+  const φ2 = (b.latitude * Math.PI) / 180;
+  const Δφ = ((b.latitude - a.latitude) * Math.PI) / 180;
   const Δλ = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const s  = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const s = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
@@ -70,7 +83,7 @@ function buildMapHTML(lat, lng) {
 <div id="map"></div>
 <script>
 var map=L.map('map',{zoomControl:true}).setView([${lat},${lng}],15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19}).addTo(map);
 
 var userIcon=L.divIcon({className:'',html:'<div class="user-dot" style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
 var userMarker=L.marker([${lat},${lng}],{icon:userIcon}).addTo(map);
@@ -118,43 +131,103 @@ window.addEventListener('message',handleMsg);
 
 // ── Component ─────────────────────────────────────────────────────
 export default function MapPage() {
-  const webViewRef     = useRef(null);
-  const panelAnim      = useRef(new Animated.Value(0)).current;
-  const stepListRef    = useRef(null);
-  const watcherRef     = useRef(null);
+  const webViewRef = useRef(null);
+  const panelAnim = useRef(new Animated.Value(0)).current;
+  const stepListRef = useRef(null);
+  const watcherRef = useRef(null);
   const routeCoordsRef = useRef([]);
-  const destRef        = useRef(null);
-  const stepsRef       = useRef([]);      // nav-only steps (DEPART filtered out)
+  const destRef = useRef(null);
+  const stepsRef = useRef([]);      // nav-only steps (DEPART filtered out)
   const lastRerouteRef = useRef(0);
   const isReroutingRef = useRef(false);
 
-  const [location,    setLocation]   = useState(null);
-  const [destination, setDest]       = useState(null);
-  const [steps,       setSteps]      = useState([]);   // nav-only steps
-  const [summary,     setSummary]    = useState(null); // { distance, duration }
-  const [phase,       setPhase]      = useState('locating');
-  const [activeStep,  setActiveStep] = useState(0);
-  const [distToNext,  setDistToNext] = useState(null);
-  const [rerouting,   setRerouting]  = useState(false);
+  // ── BLE refs ───────────────────────────────────────────────────
+  const bleManagerRef = useRef(null);
+  const bleDeviceRef = useRef(null);
+  const bleLastSentRef = useRef({ dir: null, dist: -1 }); // debounce identical sends
+
+  const [location, setLocation] = useState(null);
+  const [destination, setDest] = useState(null);
+  const [steps, setSteps] = useState([]);   // nav-only steps
+  const [summary, setSummary] = useState(null); // { distance, duration }
+  const [phase, setPhase] = useState('locating');
+  const [activeStep, setActiveStep] = useState(0);
+  const [distToNext, setDistToNext] = useState(null);
+  const [rerouting, setRerouting] = useState(false);
+  const [bleStatus, setBleStatus] = useState('off'); // 'off'|'scanning'|'connected'|'error'
+
 
   // Resume snapshot
   const [savedRoute, setSavedRoute] = useState(null);
-  const [canResume,  setCanResume]  = useState(false);
+  const [canResume, setCanResume] = useState(false);
 
   // Keep refs in sync with state (avoids stale closures in watcher)
-  useEffect(() => { destRef.current  = destination; }, [destination]);
-  useEffect(() => { stepsRef.current = steps;        }, [steps]);
+  useEffect(() => { destRef.current = destination; }, [destination]);
+  useEffect(() => { stepsRef.current = steps; }, [steps]);
 
   const slideIn = () => {
     panelAnim.setValue(0);
-    Animated.spring(panelAnim, { toValue:1, useNativeDriver:true, tension:80, friction:12 }).start();
+    Animated.spring(panelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 12 }).start();
+  };
+
+  // ── BLE: init, scan, connect, send ──────────────────────────────
+  useEffect(() => {
+    bleManagerRef.current = new BleManager();
+    // Short delay so the manager fully powers up before scanning
+    const t = setTimeout(bleScan, 1500);
+    return () => {
+      clearTimeout(t);
+      bleDeviceRef.current?.cancelConnection();
+      bleManagerRef.current?.destroy();
+    };
+  }, []);
+
+  const bleScan = () => {
+    if (!bleManagerRef.current) return;
+    setBleStatus('scanning');
+    bleManagerRef.current.startDeviceScan(null, { allowDuplicates: false }, (err, device) => {
+      if (err) { setBleStatus('error'); return; }
+      if (device?.name === BLE_DEVICE_NAME) {
+        bleManagerRef.current.stopDeviceScan();
+        bleConnect(device);
+      }
+    });
+  };
+
+  const bleConnect = async (device) => {
+    try {
+      const connected = await device.connect({ autoConnect: false });
+      await connected.discoverAllServicesAndCharacteristics();
+      bleDeviceRef.current = connected;
+      setBleStatus('connected');
+      // Auto-reconnect on drop
+      connected.onDisconnected(() => {
+        bleDeviceRef.current = null;
+        setBleStatus('scanning');
+        setTimeout(bleScan, 3000);
+      });
+    } catch (_) {
+      setBleStatus('error');
+      setTimeout(bleScan, 5000);
+    }
+  };
+
+  // Send a raw string to the ESP32 RX characteristic
+  const bleSend = async (msg) => {
+    const dev = bleDeviceRef.current;
+    if (!dev) return;
+    try {
+      await dev.writeCharacteristicWithoutResponseForService(
+        BLE_SERVICE, BLE_RX_CHAR, btoa(msg),
+      );
+    } catch (_) { }
   };
 
   // ── Initial permission + GPS fix ──────────────────────────────
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Permission denied','Location access is needed.'); return; }
+      if (status !== 'granted') { Alert.alert('Permission denied', 'Location access is needed.'); return; }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLocation(loc.coords);
       setPhase('pinning');
@@ -176,18 +249,20 @@ export default function MapPage() {
 
   // ── Navigation tick ───────────────────────────────────────────
   const onPositionUpdate = (coords) => {
-    const pos       = { latitude: coords.latitude, longitude: coords.longitude };
-    const dest      = destRef.current;
+    const pos = { latitude: coords.latitude, longitude: coords.longitude };
+    const dest = destRef.current;
     const allCoords = routeCoordsRef.current;
     const stepsSnap = stepsRef.current;
 
     // Move user dot
-    webViewRef.current?.postMessage(JSON.stringify({ type:'userPos', lat:pos.latitude, lng:pos.longitude }));
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'userPos', lat: pos.latitude, lng: pos.longitude }));
     if (!dest || allCoords.length === 0) return;
 
     // 1. Arrival check
     if (haversine(pos, dest) < ARRIVE_RADIUS) {
       stopWatcher();
+      bleSend('IDLE');
+      bleLastSentRef.current = { dir: null, dist: -1 };
       setPhase('arrived');
       return;
     }
@@ -210,7 +285,7 @@ export default function MapPage() {
     // 4. Trim polyline
     const remaining = allCoords.slice(nearestIdx);
     if (remaining.length > 1) {
-      webViewRef.current?.postMessage(JSON.stringify({ type:'trimRoute', coords: remaining }));
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'trimRoute', coords: remaining }));
     }
 
     // 5. Advance steps — never auto-advance to the ARRIVE step (type 11);
@@ -243,11 +318,11 @@ export default function MapPage() {
         `?api_key=${ORS_API_KEY}` +
         `&start=${fromPos.longitude},${fromPos.latitude}` +
         `&end=${toDest.longitude},${toDest.latitude}`;
-      const res  = await fetch(url, { headers: { Accept: 'application/geo+json' } });
+      const res = await fetch(url, { headers: { Accept: 'application/geo+json' } });
       const data = await res.json();
       if (!res.ok || !data.features?.length) return;
-      const feature  = data.features[0];
-      const coords   = feature.geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+      const feature = data.features[0];
+      const coords = feature.geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
       // Filter DEPART (type 12) from nav steps — same as fetchRoute
       const allRaw = feature.properties.segments.flatMap((s) => s.steps).filter(s => s.type !== 12);
       const navSteps = allRaw.filter((s, i) => !(s.type === 11 && i !== allRaw.length - 1));
@@ -256,7 +331,7 @@ export default function MapPage() {
       setSteps(navSteps);
       setSummary({ distance: feature.properties.summary.distance, duration: feature.properties.summary.duration });
       setActiveStep(0); setDistToNext(null);
-      webViewRef.current?.postMessage(JSON.stringify({ type:'route', coords }));
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'route', coords }));
       await startWatcher();
     } catch (_) { /* stay on old route */ } finally {
       isReroutingRef.current = false;
@@ -280,7 +355,7 @@ export default function MapPage() {
         setSteps([]); setSummary(null); setActiveStep(0); setDistToNext(null);
         setPhase('ready'); slideIn();
       }
-    } catch {}
+    } catch { }
   };
 
   // ── Resume ────────────────────────────────────────────────────
@@ -293,8 +368,8 @@ export default function MapPage() {
     routeCoordsRef.current = savedRoute.coords;
     setActiveStep(0); setCanResume(false); setSavedRoute(null);
     setPhase('done'); slideIn();
-    webViewRef.current?.postMessage(JSON.stringify({ type:'route', coords: savedRoute.coords }));
-    webViewRef.current?.postMessage(JSON.stringify({ type:'restorePin', lat:savedRoute.destination.latitude, lng:savedRoute.destination.longitude }));
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'route', coords: savedRoute.coords }));
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'restorePin', lat: savedRoute.destination.latitude, lng: savedRoute.destination.longitude }));
     startWatcher();
   };
 
@@ -310,14 +385,14 @@ export default function MapPage() {
         `?api_key=${ORS_API_KEY}` +
         `&start=${loc.coords.longitude},${loc.coords.latitude}` +
         `&end=${destination.longitude},${destination.latitude}`;
-      const res  = await fetch(url, { headers: { Accept: 'application/geo+json' } });
+      const res = await fetch(url, { headers: { Accept: 'application/geo+json' } });
       const data = await res.json();
       if (!res.ok || !data.features?.length) {
         Alert.alert('No route found', data.error?.message || 'No wheelchair route available.');
         setPhase('ready'); return;
       }
       const feature = data.features[0];
-      const coords  = feature.geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+      const coords = feature.geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
 
       // Filter out DEPART (type 12) — it has 0 distance and its end-waypoint
       //    is right where you are, causing immediate advancement to ARRIVE on first tick.
@@ -332,7 +407,7 @@ export default function MapPage() {
       setSavedRoute(null); setCanResume(false);
       lastRerouteRef.current = 0;
       setPhase('done'); slideIn();
-      webViewRef.current?.postMessage(JSON.stringify({ type:'route', coords }));
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'route', coords }));
       startWatcher();
     } catch (err) {
       Alert.alert('Error', err.message); setPhase('ready');
@@ -341,14 +416,29 @@ export default function MapPage() {
 
   // ── Full reset ────────────────────────────────────────────────
   const reset = () => {
+    bleSend('IDLE');
+    bleLastSentRef.current = { dir: null, dist: -1 };
     stopWatcher();
     setDest(null); setSteps([]); setSummary(null);
     setActiveStep(0); setDistToNext(null); setRerouting(false);
     setSavedRoute(null); setCanResume(false);
     routeCoordsRef.current = []; stepsRef.current = [];
     panelAnim.setValue(0); setPhase('pinning');
-    webViewRef.current?.postMessage(JSON.stringify({ type:'reset' }));
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
   };
+
+  // ── Send live nav update to ESP32 over BLE ───────────────────────
+  useEffect(() => {
+    if (phase !== 'done' || !steps[activeStep]) return;
+    const dir = BLE_DIR[steps[activeStep].type] ?? 'STRAIGHT';
+    const dist = distToNext ?? Math.round(steps[activeStep].distance);
+    const last = bleLastSentRef.current;
+    // Only transmit when direction changes OR distance shifts by >3 m
+    if (dir !== last.dir || Math.abs(dist - last.dist) > 3) {
+      bleLastSentRef.current = { dir, dist };
+      bleSend(`NAV:${dir},${dist}`);
+    }
+  }, [phase, activeStep, distToNext]);
 
   // ─────────────────────────────────────────────────────────────
   return (
@@ -360,16 +450,23 @@ export default function MapPage() {
           ref={webViewRef}
           style={s.map}
           originWhitelist={['*']}
-          source={{ html: buildMapHTML(location.latitude, location.longitude) }}
+          source={{
+            html: buildMapHTML(location.latitude, location.longitude),
+            baseUrl: 'https://openstreetmap.org'
+          }}
+          // Use a completely unique name so OSM doesn't block you
+          userAgent="Legendss_HackTUES12_App/1.0 (Hackathon Project)"
           onMessage={onMessage}
-          javaScriptEnabled domStorageEnabled startInLoadingState
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
           renderLoading={() => (
-            <View style={s.placeholder}><ActivityIndicator size="large" color="#2473c8"/></View>
+            <View style={s.placeholder}><ActivityIndicator size="large" color="#2473c8" /></View>
           )}
         />
       ) : (
         <View style={s.placeholder}>
-          <ActivityIndicator size="large" color="#2480c6"/>
+          <ActivityIndicator size="large" color="#2480c6" />
           <Text style={s.muted}>Locating you…</Text>
         </View>
       )}
@@ -384,10 +481,22 @@ export default function MapPage() {
       {/* REROUTING TOAST */}
       {rerouting && (
         <View style={s.rerouteToast} pointerEvents="none">
-          <ActivityIndicator size="small" color="#f59e0b" style={{marginRight:8}}/>
+          <ActivityIndicator size="small" color="#f59e0b" style={{ marginRight: 8 }} />
           <Text style={s.rerouteTxt}>Rerouting…</Text>
         </View>
       )}
+
+      {/* BLE STATUS DOT */}
+      <TouchableOpacity
+        style={s.bleDot}
+        onPress={bleScan}
+        activeOpacity={0.7}
+      >
+        <View style={[s.bleDotInner, { backgroundColor: bleStatus === 'connected' ? '#22c55e' : bleStatus === 'scanning' ? '#eab308' : '#ef4444' }]} />
+        <Text style={s.bleDotTxt}>
+          {bleStatus === 'connected' ? 'Connected' : bleStatus === 'scanning' ? 'Scanning...' : 'Disconnected'}
+        </Text>
+      </TouchableOpacity>
 
       {/* ARRIVED OVERLAY */}
       {phase === 'arrived' && (
@@ -403,13 +512,13 @@ export default function MapPage() {
 
       {/* BOTTOM PANEL */}
       {(phase === 'ready' || phase === 'routing' || phase === 'done') && (
-        <Animated.View style={[s.panel,{transform:[{translateY:panelAnim.interpolate({inputRange:[0,1],outputRange:[300,0]})}]}]}>
+        <Animated.View style={[s.panel, { transform: [{ translateY: panelAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] }) }] }]}>
 
           {/* READY */}
           {phase === 'ready' && destination && (
             <>
               <View style={s.row}>
-                <View style={{flex:1}}>
+                <View style={{ flex: 1 }}>
                   <Text style={s.title}>Where to?</Text>
                   <Text style={s.sub}>{destination.latitude.toFixed(5)}, {destination.longitude.toFixed(5)}</Text>
                 </View>
@@ -433,7 +542,7 @@ export default function MapPage() {
           {/* ROUTING */}
           {phase === 'routing' && (
             <View style={s.centered}>
-              <ActivityIndicator size="large" color="#2581cd"/>
+              <ActivityIndicator size="large" color="#2581cd" />
               <Text style={s.muted}>Finding accessible route…</Text>
             </View>
           )}
@@ -461,33 +570,33 @@ export default function MapPage() {
 
               {/* Step counter + ETA */}
               <View style={s.dividerRow}>
-                <View style={s.divider}/>
+                <View style={s.divider} />
                 <Text style={s.stepCount}>
                   {activeStep + 1}/{steps.length}
                   {summary ? `  ·  ${formatETA(summary.duration)}` : ''}
                   {summary ? `  ·  ${formatDist(summary.distance)}` : ''}
                 </Text>
-                <View style={s.divider}/>
+                <View style={s.divider} />
               </View>
 
               {/* Full step list */}
               <ScrollView ref={stepListRef} style={s.list} showsVerticalScrollIndicator={false}
-                contentContainerStyle={{paddingBottom:8}}>
+                contentContainerStyle={{ paddingBottom: 8 }}>
                 {steps.map((step, i) => {
                   const isActive = i === activeStep;
-                  const isDone   = i < activeStep;
+                  const isDone = i < activeStep;
                   return (
-                    <View key={i} style={[s.stepRow, isActive && s.stepRowActive, isDone && s.stepRowDone, i===steps.length-1&&{borderBottomWidth:0}]}>
-                      <View style={[s.badge, isActive && s.badgeActive, step.type===11 && s.badgeArrive]}>
-                        <Text style={[s.arrow, isDone && {opacity:0.3}]}>{STEP_ARROW[step.type]??'→'}</Text>
+                    <View key={i} style={[s.stepRow, isActive && s.stepRowActive, isDone && s.stepRowDone, i === steps.length - 1 && { borderBottomWidth: 0 }]}>
+                      <View style={[s.badge, isActive && s.badgeActive, step.type === 11 && s.badgeArrive]}>
+                        <Text style={[s.arrow, isDone && { opacity: 0.3 }]}>{STEP_ARROW[step.type] ?? '→'}</Text>
                       </View>
                       <View style={s.stepMid}>
-                        <Text style={[s.stepLabel, isDone && {color:'#374151'}, isActive && {color:'#2581cd'}]}>
+                        <Text style={[s.stepLabel, isDone && { color: '#374151' }, isActive && { color: '#2581cd' }]}>
                           {STEP_LABEL[step.type] ?? 'CONTINUE'}
                         </Text>
                       </View>
                       <View style={s.chip}>
-                        <Text style={[s.chipTxt, isDone && {color:'#374151'}]}>{formatDist(step.distance)}</Text>
+                        <Text style={[s.chipTxt, isDone && { color: '#374151' }]}>{formatDist(step.distance)}</Text>
                       </View>
                     </View>
                   );
@@ -507,109 +616,127 @@ export default function MapPage() {
 
 // ── Styles ────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root:        { flex:1, backgroundColor:'#0a0a0a' },
-  map:         { flex:1 },
-  placeholder: { flex:1, alignItems:'center', justifyContent:'center', backgroundColor:'#111', gap:14 },
-  muted:       { color:'#6b7280', fontSize:14 },
+  root: { flex: 1, backgroundColor: '#0a0a0a' },
+  map: { flex: 1 },
+  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111', gap: 14 },
+  muted: { color: '#6b7280', fontSize: 14 },
 
   hint: {
-    position:'absolute', top:52, alignSelf:'center',
-    backgroundColor:'rgba(10,10,10,0.82)', paddingHorizontal:18, paddingVertical:10,
-    borderRadius:30, borderWidth:1, borderColor:'rgba(255,255,255,0.08)',
+    position: 'absolute', top: 52, alignSelf: 'center',
+    backgroundColor: 'rgba(10,10,10,0.82)', paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  hintText: { color:'#fff', fontSize:14, fontWeight:'600' },
+  hintText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
   rerouteToast: {
-    position:'absolute', top:52, alignSelf:'center',
-    flexDirection:'row', alignItems:'center',
-    backgroundColor:'rgba(10,10,10,0.88)', paddingHorizontal:16, paddingVertical:9,
-    borderRadius:30, borderWidth:1, borderColor:'rgba(245,158,11,0.4)',
+    position: 'absolute', top: 52, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(10,10,10,0.88)', paddingHorizontal: 16, paddingVertical: 9,
+    borderRadius: 30, borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
   },
-  rerouteTxt: { color:'#f59e0b', fontSize:13, fontWeight:'700' },
+  rerouteTxt: { color: '#f59e0b', fontSize: 13, fontWeight: '700' },
 
   arrivedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor:'rgba(10,10,10,0.92)',
-    alignItems:'center', justifyContent:'center', gap:12, zIndex:99,
+    backgroundColor: 'rgba(10,10,10,0.92)',
+    alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 99,
   },
-  arrivedEmoji: { fontSize:64 },
-  arrivedTitle: { color:'#f9fafb', fontSize:26, fontWeight:'800' },
-  arrivedSub:   { color:'#6b7280', fontSize:14 },
-  arrivedBtn:   { marginTop:8, backgroundColor:'#2581cd', paddingHorizontal:40, paddingVertical:14, borderRadius:14 },
-  arrivedBtnTxt:{ color:'#fff', fontWeight:'700', fontSize:16 },
+  arrivedEmoji: { fontSize: 64 },
+  arrivedTitle: { color: '#f9fafb', fontSize: 26, fontWeight: '800' },
+  arrivedSub: { color: '#6b7280', fontSize: 14 },
+  arrivedBtn: { marginTop: 8, backgroundColor: '#2581cd', paddingHorizontal: 40, paddingVertical: 14, borderRadius: 14 },
+  arrivedBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
   panel: {
-    backgroundColor:'#111827', borderTopLeftRadius:22, borderTopRightRadius:22,
-    paddingHorizontal:20, paddingTop:16, paddingBottom:16,
-    maxHeight:SCREEN_HEIGHT*0.52, minHeight:500,
-    borderTopWidth:1, borderColor:'rgba(255,255,255,0.06)',
-    shadowColor:'#000', shadowOffset:{width:0,height:-8},
-    shadowOpacity:0.5, shadowRadius:16, elevation:20,
+    backgroundColor: '#111827', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
+    maxHeight: SCREEN_HEIGHT * 0.52, minHeight: 400,
+    borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.5, shadowRadius: 16, elevation: 20,
   },
-  row:           { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 },
-  headerActions: { flexDirection:'row', alignItems:'center', gap:8 },
-  title:    { color:'#f9fafb', fontSize:18, fontWeight:'700' },
-  sub:      { color:'#6b7280', fontSize:12, marginTop:2 },
-  closeBtn: { paddingHorizontal:8, paddingVertical:4 },
-  closeTxt: { color:'#6b7280', fontWeight:'600', fontSize:14 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { color: '#f9fafb', fontSize: 18, fontWeight: '700' },
+  sub: { color: '#6b7280', fontSize: 12, marginTop: 2 },
+  closeBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  closeTxt: { color: '#6b7280', fontWeight: '600', fontSize: 14 },
 
   resumeBtn: {
     // ПРОМЕНЕНО
-    backgroundColor:'rgba(59,130,246,0.15)', borderWidth:1,
-    borderColor:'#2581cd', borderRadius:20,
-    paddingHorizontal:12, paddingVertical:5,
+    backgroundColor: 'rgba(59,130,246,0.15)', borderWidth: 1,
+    borderColor: '#2581cd', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 5,
   },
-  resumeTxt: { color:'#2581cd', fontWeight:'700', fontSize:13 },
+  resumeTxt: { color: '#2581cd', fontWeight: '700', fontSize: 13 },
 
   goBtn: {
-    alignItems:'center', justifyContent:'center',
-    backgroundColor:'#2581cd', borderRadius:14, paddingVertical:15,
-    shadowColor:'#2581cd', shadowOffset:{width:0,height:4},
-    shadowOpacity:0.35, shadowRadius:10, elevation:8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#2581cd', borderRadius: 14, paddingVertical: 15,
+    shadowColor: '#2581cd', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
   },
-  goBtnTxt: { color:'#fff', fontWeight:'700', fontSize:16 },
+  goBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
-  centered: { alignItems:'center', justifyContent:'center', paddingVertical:24, gap:12 },
+  centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 24, gap: 12 },
 
   heroCard: {
-    flexDirection:'row', alignItems:'center',
-    backgroundColor:'#1f2937', borderRadius:16,
-    padding:14, marginBottom:10, gap:12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1f2937', borderRadius: 16,
+    padding: 14, marginBottom: 10, gap: 12,
     // ПРОМЕНЕНО
-    borderWidth:1, borderColor:'rgba(59,130,246,0.25)',
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)',
   },
-  heroArrow:   { fontSize:36, width:48, textAlign:'center' },
-  heroMid:     { flex:1 },
-  heroLabel:   { color:'#f9fafb', fontSize:22, fontWeight:'800', letterSpacing:1 },
-  heroDistCol: { alignItems:'flex-end' },
-  heroDistNum: { color:'#f9fafb', fontSize:26, fontWeight:'800' },
-  heroDistUnit:{ color:'#6b7280', fontSize:12, marginTop:-2 },
+  heroArrow: { fontSize: 36, width: 48, textAlign: 'center' },
+  heroMid: { flex: 1 },
+  heroLabel: { color: '#f9fafb', fontSize: 22, fontWeight: '800', letterSpacing: 1 },
+  heroDistCol: { alignItems: 'flex-end' },
+  heroDistNum: { color: '#f9fafb', fontSize: 26, fontWeight: '800' },
+  heroDistUnit: { color: '#6b7280', fontSize: 12, marginTop: -2 },
 
-  dividerRow: { flexDirection:'row', alignItems:'center', gap:8, marginBottom:8 },
-  divider:    { flex:1, height:1, backgroundColor:'rgba(255,255,255,0.06)' },
-  stepCount:  { color:'#4b5563', fontSize:11, fontWeight:'600' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  divider: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
+  stepCount: { color: '#4b5563', fontSize: 11, fontWeight: '600' },
 
-  list:    { flex:1 },
+  list: { flex: 1 },
   stepRow: {
-    flexDirection:'row', alignItems:'center', paddingVertical:10,
-    borderBottomWidth:1, borderBottomColor:'rgba(255,255,255,0.05)', gap:12,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', gap: 12,
   },
-  stepRowActive: { opacity:1 },
-  stepRowDone:   { opacity:0.35 },
+  stepRowActive: { opacity: 1 },
+  stepRowDone: { opacity: 0.35 },
 
-  badge:       { width:36,height:36,borderRadius:10,backgroundColor:'#1f2937',alignItems:'center',justifyContent:'center',flexShrink:0 },
+  badge: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   // ПРОМЕНЕНО
-  badgeActive: { backgroundColor:'rgba(59,130,246,0.2)', borderWidth:1, borderColor:'rgba(59,130,246,0.4)' },
-  badgeArrive: { backgroundColor:'rgba(59,130,246,0.15)' },
-  arrow:       { fontSize:17 },
-  stepMid:     { flex:1 },
-  stepLabel:   { color:'#9ca3af', fontSize:13, fontWeight:'700', letterSpacing:0.5 },
-  chip:        { backgroundColor:'#1f2937', borderRadius:8, paddingHorizontal:8, paddingVertical:4, flexShrink:0 },
-  chipTxt:     { color:'#9ca3af', fontSize:11, fontWeight:'700' },
+  badgeActive: { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.4)' },
+  badgeArrive: { backgroundColor: 'rgba(59,130,246,0.15)' },
+  arrow: { fontSize: 17 },
+  stepMid: { flex: 1 },
+  stepLabel: { color: '#9ca3af', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
+  chip: { backgroundColor: '#1f2937', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexShrink: 0 },
+  chipTxt: { color: '#9ca3af', fontSize: 11, fontWeight: '700' },
 
   resetBtn: {
-    marginTop:10, alignItems:'center', paddingVertical:10,
-    borderRadius:12, borderWidth:1, borderColor:'rgba(239,68,68,0.3)',
+    marginTop: 10, alignItems: 'center', paddingVertical: 10,
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
   },
-  resetTxt: { color:'#ef4444', fontWeight:'700', fontSize:13 },
+  resetTxt: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
+
+  bleDot: {
+    position: 'absolute',
+    top:10, // Increased slightly to clear the notch/status bar 
+    right: 16,
+    zIndex: 999, // Brings it to the very front (iOS)
+    elevation: 10, // Brings it to the very front (Android)
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // Slightly more space between the dot and text
+    backgroundColor: '#1f2937', // Adjust based on your theme
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    // Remove any hardcoded 'width' or 'height' here if you have them so it stops clipping!
+  },
+  bleDotInner: { width: 8, height: 8, borderRadius: 4 },
+  bleDotTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
