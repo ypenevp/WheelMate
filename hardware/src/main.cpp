@@ -19,7 +19,7 @@ bool navigationActive = false;
 String direction = "STRAIGHT";
 int distance_m = 0;
 unsigned long lastDisplayUpdate = 0;
-const int TIME_ZONE_OFFSET = 2; // +2 hours for EET (Bulgaria)
+const int TIME_ZONE_OFFSET = 2; 
 
 #define SIM_RX_PIN 16
 #define SIM_TX_PIN 17
@@ -184,7 +184,6 @@ void updateDisplay()
   display.display();
 }
 
-
 void parseCoordinates(String data)
 {
   int latIndex = data.indexOf("LAT:");
@@ -256,7 +255,6 @@ class MyServerCallbacks : public BLEServerCallbacks
   void onDisconnect(BLEServer *pServer) { deviceConnected = false; }
 };
 
-
 void readMPU()
 {
   if (!mpuReady || !ENABLE_GYRO)
@@ -290,8 +288,6 @@ String getFallReason()
     return "RAPID ROLL Y " + String(Gy, 1) + " deg/s";
   return "";
 }
-
-//////////////////////////////////////////////////////////////////////////////
 
 bool checkFallDetection()
 {
@@ -441,9 +437,6 @@ bool checkNetwork()
   return false;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-
-
 bool sendSMS(String number, String message)
 {
   if (!simReady)
@@ -509,8 +502,6 @@ void alertSignalBlinkLED()
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-
 void sendToBackend(bool panicStatus)
 {
   if (WiFi.status() != WL_CONNECTED)
@@ -528,7 +519,6 @@ void sendToBackend(bool panicStatus)
   // GPS
   if (gps.location.isValid())
   {
-    // send as single string: "lat lon" (no comma)
     payload += "\"gpsCoordinate\":\"";
     payload += String(gps.location.lat(), 6) + " " + String(gps.location.lng(), 6);
     payload += "\",";
@@ -551,15 +541,14 @@ void sendToBackend(bool panicStatus)
   // Token
   payload += "\"token\":\"" + String(DEVICE_TOKEN) + "\",";
 
-  // Panic status
+  // Panic status (true / false text for JSON)
   payload += "\"panicStatus\":";
-  payload += panicStatus ? "true" : "false";
+  payload += (panicStatus ? "true" : "false"); 
 
   payload += "}";
 
   Serial.println("Sending to backend:");
   Serial.println(payload);
-
 
   int httpResponseCode = http.sendRequest("PATCH", payload);
 
@@ -580,7 +569,6 @@ void sendToBackend(bool panicStatus)
   http.end();
 }
 
-/////////////////////////////////////////////////////////////////////////////
 void setup()
 {
   Serial.begin(115200);
@@ -682,8 +670,6 @@ void setup()
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-
 void loop()
 {
   if (lockdown)
@@ -703,6 +689,12 @@ void loop()
     {
       updateDisplay();
       lastDisplayUpdate = millis();
+    }
+    
+    if (millis() - lastWiFiSend > WIFI_SEND_INTERVAL)
+    {
+      lastWiFiSend = millis();
+      sendToBackend(true); 
     }
     return;
   }
@@ -742,6 +734,7 @@ void loop()
 
   bool fallDetected = checkFallDetection();
 
+  // 1. АКТИВИРАНЕ НА АЛАРМАТА
   if ((panicPressed || fallDetected) && !alertTriggered)
   {
     alertTriggered = true;
@@ -756,20 +749,23 @@ void loop()
     digitalWrite(LED_PIN, HIGH);
     digitalWrite(BUZZER_PIN, HIGH);
 
-    updateDisplay(); 
+    updateDisplay();
+    sendToBackend(true); // ФИКС: Веднага уведомява бекенда, че има задействана паника
   }
 
   if (alertTriggered)
   {
+    // 2. ДЕАКТИВИРАНЕ ОТ ПОТРЕБИТЕЛЯ
     if (deactivatePressed)
     {
       alertTriggered = false;
       digitalWrite(BUZZER_PIN, LOW);
       digitalWrite(LED_PIN, LOW);
       Serial.println("Alert DEACTIVATED by user.");
-      sendToBackend(true);
+      sendToBackend(false); // ФИКС: Уведомява, че всичко е наред (беше сложено на true по грешка)
       updateDisplay();
     }
+    // 3. ОТКЛЮЧВАНЕ НА LOCKDOWN СЛЕД 10 СЕК
     else if (millis() - alertStartTime >= ALERT_DELAY_MS)
     {
       Serial.println("10 seconds elapsed! Sending SOS...");
@@ -801,7 +797,7 @@ void loop()
       }
 
       alertTriggered = false;
-      lockdown = true;
+      lockdown = true; 
     }
     else
     {
@@ -821,10 +817,12 @@ void loop()
     sendGPSData = true;
   }
 
+  // 4. ПЕРИОДИЧНО ИЗПРАЩАНЕ
   if (millis() - lastWiFiSend > WIFI_SEND_INTERVAL)
   {
     lastWiFiSend = millis();
-    sendToBackend(false);
+    // ФИКС: Изпраща текущия статус (ако е в отброяване, праща true, иначе false)
+    sendToBackend(alertTriggered); 
   }
 
   if (deviceConnected && sendGPSData)
