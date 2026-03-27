@@ -58,7 +58,7 @@ export default function RelativesCareTakers() {
             <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 22, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#f3f4f6' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
                     <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#a3c0ff', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-                        <Ionicons name="people" size={22} color="#2f61b1" />
+                        <Ionicons name="people" size={22} color="#2c5fb1" />
                     </View>
                     <View>
                         <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>Add Relative</Text>
@@ -68,8 +68,8 @@ export default function RelativesCareTakers() {
  
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Email address</Text>
  
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 14, borderWidth: 1.5, borderColor: relativeFocus ? '#2f61b1' : '#e5e7eb', paddingHorizontal: 14, paddingVertical: 2, marginBottom: 16 }}>
-                    <Feather name="mail" size={16} color={relativeFocus ? '#2f61b1' : '#9ca3af'} style={{ marginRight: 10 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 14, borderWidth: 1.5, borderColor: relativeFocus ? '#2c5fb1' : '#e5e7eb', paddingHorizontal: 14, paddingVertical: 2, marginBottom: 16 }}>
+                    <Feather name="mail" size={16} color={relativeFocus ? '#2c5fb1' : '#9ca3af'} style={{ marginRight: 10 }} />
                     <TextInput
                         placeholder="relative@email.com"
                         placeholderTextColor="#d1d5db"
@@ -91,7 +91,7 @@ export default function RelativesCareTakers() {
                 <TouchableOpacity
                     onPress={handleAddRelative}
                     activeOpacity={0.8}
-                    style={{ backgroundColor: '#2f61b1', borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                    style={{ backgroundColor: '#2c5fb1', borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
                 >
                     <Feather name="user-plus" size={16} color="#fff" />
                     <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
