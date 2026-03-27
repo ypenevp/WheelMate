@@ -22,10 +22,11 @@
 - In emergency situations, users often cannot call for help quickly or reliably.
 - Wheelchair users lack smart tools for real-time navigation adapted to their mobility needs.
 - Caregivers and family members have no way to remotely monitor the user's location or safety.
+- Wheelchair users often struggle to find accessible routes suitable for their mobility needs.
 
 **Our solution:**
 
-WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-based hardware module with a Spring Boot backend and a mobile app to deliver real-time GPS/GSM tracking, obstacle detection via ultrasonic sensors, a one-press SOS panic button, and a user-friendly on-device display. Emergency signals are automatically dispatched to registered contacts and volunteer organizations.
+WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-based hardware module with a Spring Boot backend and a mobile app to deliver real-time GPS/GSM tracking, a one-press SOS panic button, and a user-friendly on-device display. It also features an accelerometer-based SOS panic signal that can automatically detect emergencies, along with an intelligent navigation system tailored for wheelchair-accessible routes. Emergency signals are automatically dispatched to registered contacts and volunteer organizations.
 
 ---
 
@@ -33,9 +34,9 @@ WheelMate is a modular IoT platform for smart wheelchairs. It combines an ESP32-
 
 ### Core Features
 - Real-time tracking of the wheelchair's location.
+- Fall/flip detection with accelerometer sensor, data triggers SOS alert.
 - SOS panic button — instantly alerts registered contacts and volunteer organizations.
 - Smart mobility-aware navigation (avoids stairs, curbs, inaccessible routes).
-- Fall/tip detection with accelerometer sensor.
 - On-device display (OLED) showing navigation info and real time.
 - Sensor indicating whether there is someone in the wheelchair.
 
@@ -97,14 +98,6 @@ Base URL: `http://localhost:7070/api`
 
 ---
 
-### Admin
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `PATCH` | `/admin/users/role` | Update user's role . |
-
----
-
 ### User Profile
 
 | Method | Endpoint | Description |
@@ -113,6 +106,14 @@ Base URL: `http://localhost:7070/api`
 | `GET`    | `/userprofile/getuserprofile/{id}` | Get a user profile by ID. |
 | `PATCH`  | `/userprofile/updateuserprofile/{id}` | Update a user profile by ID. |
 | `DELETE` | `/userprofile/deleteuserprofile/{id}` | Delete a user profile by ID. |
+
+---
+
+### Admin
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PATCH` | `/admin/users/role` | Update user's role . |
 
 ---
 ## Schematic
@@ -149,7 +150,11 @@ Base URL: `http://localhost:7070/api`
 ---
 
 ## Future Improvements
-
+- Obstacle detection via ultrasonic sensor.
+- Joystick-controlled module for intuitive wheelchair navigation.
+- Voice control integration for blind people.
+- Extended battery life and power management optimization.
+- Offline navigation support in low-connectivity areas.
 
 ---
 
