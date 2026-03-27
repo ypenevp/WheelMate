@@ -32,6 +32,7 @@ public class WheelChair {
     @Column(name = "token", nullable = false, unique = true, updatable = false)
     private String token;
 
+
     @PrePersist
     public void setInit(){
         this.panicStatus = false;

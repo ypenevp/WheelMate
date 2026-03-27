@@ -40,6 +40,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/wheelchairs/wheelchair/my/associated").hasAnyRole("USER", "RELATIVE", "CARETAKER")
 
+                        .requestMatchers("/api/navigation/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
