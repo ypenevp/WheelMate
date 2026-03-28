@@ -138,7 +138,7 @@ export default function Monitoring() {
                                     <View style={{ flex: 1, backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6' }}>
                                         <Ionicons name="person" size={14} color="#8b5cf6" style={{ marginBottom: 4 }} />
                                         <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827' }}>
-                                            {wheelchair.inChair ? 'Yes' : 'No'}
+                                            {wheelchair.userInchair ? 'Yes' : 'No'}
                                         </Text>
                                         <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>In Chair</Text>
                                     </View>
